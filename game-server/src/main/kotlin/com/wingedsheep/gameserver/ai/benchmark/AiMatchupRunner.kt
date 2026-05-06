@@ -560,22 +560,18 @@ fun runMatchup(
                 if (deck1GoesFirst) {
                     deck1Wins++
                     deck1PlayWins++
-                    deck2DrawWins++
                 } else {
                     deck2Wins++
                     deck2PlayWins++
-                    deck1DrawWins++
                 }
             }
             "P2" -> {
                 if (deck1GoesFirst) {
                     deck2Wins++
-                    deck2PlayWins++
-                    deck1DrawWins++
+                    deck2DrawWins++
                 } else {
                     deck1Wins++
-                    deck1PlayWins++
-                    deck2DrawWins++
+                    deck1DrawWins++
                 }
             }
             "draw" -> draws++
@@ -975,24 +971,29 @@ fun displaySingleMatchupResults(
     val deck2PlayWinRate = if (deck2PlayGames > 0) deck2PlayWins.toDouble() / deck2PlayGames * 100 else 0.0
     val deck2DrawWinRate = if (deck2DrawGames > 0) deck2DrawWins.toDouble() / deck2DrawGames * 100 else 0.0
     
+    val deck1Wins = deck1PlayWins + deck1DrawWins
+    val deck2Wins = deck2PlayWins + deck2DrawWins
+    val deck1WinRate = if (stats.totalGames > 0) deck1Wins * 100.0 / stats.totalGames else 0.0
+    val deck2WinRate = if (stats.totalGames > 0) deck2Wins * 100.0 / stats.totalGames else 0.0
+
     println("=== OVERALL RESULTS ===")
-    println("$deck1Name wins: ${stats.p1Wins} (${String.format("%.1f", stats.p1WinRate)}%)")
-    println("$deck2Name wins: ${stats.p2Wins} (${String.format("%.1f", stats.p2WinRate)}%)")
+    println("$deck1Name wins: $deck1Wins (${String.format("%.1f", deck1WinRate)}%)")
+    println("$deck2Name wins: $deck2Wins (${String.format("%.1f", deck2WinRate)}%)")
     println("Draws: ${stats.draws} (${String.format("%.1f", stats.drawRate)}%)")
     println()
-    
+
     println("=== PLAY/DRAW ANALYSIS ===")
     println("$deck1Name:")
-    println("  Overall: ${stats.p1Wins}-${stats.p2Wins}-${stats.draws} (${String.format("%.1f", stats.p1WinRate)}%)")
+    println("  Overall: $deck1Wins-$deck2Wins-${stats.draws} (${String.format("%.1f", deck1WinRate)}%)")
     println("  On play: $deck1PlayWins-$deck1PlayLosses (${String.format("%.1f", deck1PlayWinRate)}%)")
     println("  On draw: $deck1DrawWins-$deck1DrawLosses (${String.format("%.1f", deck1DrawWinRate)}%)")
-    println("  Total: ${deck1PlayWins + deck1DrawWins}-${deck1PlayLosses + deck1DrawLosses}")
+    println("  Total: $deck1Wins-${deck1PlayLosses + deck1DrawLosses}")
     println()
     println("$deck2Name:")
-    println("  Overall: ${stats.p2Wins}-${stats.p1Wins}-${stats.draws} (${String.format("%.1f", stats.p2WinRate)}%)")
+    println("  Overall: $deck2Wins-$deck1Wins-${stats.draws} (${String.format("%.1f", deck2WinRate)}%)")
     println("  On play: $deck2PlayWins-$deck2PlayLosses (${String.format("%.1f", deck2PlayWinRate)}%)")
     println("  On draw: $deck2DrawWins-$deck2DrawLosses (${String.format("%.1f", deck2DrawWinRate)}%)")
-    println("  Total: ${deck2PlayWins + deck2DrawWins}-${deck2PlayLosses + deck2DrawLosses}")
+    println("  Total: $deck2Wins-${deck2PlayLosses + deck2DrawLosses}")
     println()
     
     println("=== PERFORMANCE METRICS ===")
@@ -1039,9 +1040,14 @@ fun saveSingleMatchupSummary(
     summaryFile.appendText("Total games: ${stats.totalGames}\n")
     summaryFile.appendText("Completed: ${stats.completed} / ${stats.totalGames} (${if (stats.totalGames > 0) stats.completed * 100 / stats.totalGames else 0}%)\n\n")
     
+    val deck1Wins = deck1PlayWins + deck1DrawWins
+    val deck2Wins = deck2PlayWins + deck2DrawWins
+    val deck1WinRate = if (stats.totalGames > 0) deck1Wins * 100.0 / stats.totalGames else 0.0
+    val deck2WinRate = if (stats.totalGames > 0) deck2Wins * 100.0 / stats.totalGames else 0.0
+
     summaryFile.appendText("=== RESULTS ===\n")
-    summaryFile.appendText("$deck1Name wins: ${stats.p1Wins} (${String.format("%.1f", stats.p1WinRate)}%)\n")
-    summaryFile.appendText("$deck2Name wins: ${stats.p2Wins} (${String.format("%.1f", stats.p2WinRate)}%)\n")
+    summaryFile.appendText("$deck1Name wins: $deck1Wins (${String.format("%.1f", deck1WinRate)}%)\n")
+    summaryFile.appendText("$deck2Name wins: $deck2Wins (${String.format("%.1f", deck2WinRate)}%)\n")
     summaryFile.appendText("Draws: ${stats.draws} (${String.format("%.1f", stats.drawRate)}%)\n\n")
     
     // Calculate play/draw statistics

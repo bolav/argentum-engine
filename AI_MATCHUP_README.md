@@ -206,6 +206,164 @@ For 1000+ games, consider:
 ./gradlew :game-server:runAiMatchup -Pargs="--deck1=white_creatures --deck2=blue_creatures --games=1000"
 ```
 
+## Tournament Mode
+
+Run comprehensive tournaments with multiple decks playing against each other in round-robin format.
+
+### Quick Start
+
+```bash
+# Build the project first
+./gradlew :game-server:build
+
+# Run tournament with default deck pool
+./gradlew :game-server:runAiMatchup -Pargs="--tournament --games=50"
+
+# Custom deck pool with more games
+./gradlew :game-server:runAiMatchup -Pargs="--tournament --deck-pool=my-tournament.json --games=100 --save-replays"
+```
+
+### Tournament Features
+
+- **Round-robin format**: Every deck plays against every other deck
+- **Comprehensive statistics**: Win rates, play/draw performance, matchup breakdowns
+- **Fair play**: Alternates starting player in each game
+- **Detailed rankings**: Automatic deck ranking by overall performance
+- **CSV export**: Tournament results and matchup matrix for analysis
+- **Multi-deck support**: Mix JSON decks and text decklist files
+
+### Deck Pool Configuration
+
+Create a `tournament-decks.json` file:
+
+```json
+{
+  "jsonDecks": ["red_creatures", "white_creatures", "blue_creatures"],
+  "textFiles": ["wauras.txt", "my-custom-deck.txt"]
+}
+```
+
+Or use simple format (one deck per line):
+```
+# tournament-decks.txt
+red_creatures
+white_creatures
+blue_creatures
+wauras.txt
+my-custom-deck.txt
+```
+
+### Tournament Command Line Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--tournament` | Enable tournament mode | `false` |
+| `--deck-pool=<file>` | Deck pool configuration file | `tournament-decks.json` |
+| `--games=<number>` | Games per matchup | `50` |
+| `--max-turns=<number>` | Maximum turns before draw | `50` |
+| `--save-replays` | Save detailed game logs | `false` |
+
+### Tournament Output
+
+Creates a timestamped directory with comprehensive results:
+
+```
+tournament-20240506_123456/
+├── tournament-results.csv      # Overall deck performance
+├── matchup-matrix.csv          # Head-to-head results
+├── red_creatures-vs-white_creatures/
+│   ├── game-1.log              # Individual game logs
+│   ├── game-2.log
+│   └── ...
+└── white_creatures-vs-blue_creatures/
+    ├── game-1.log
+    └── ...
+```
+
+### Tournament Results Format
+
+**Console Output:**
+```
+=== TOURNAMENT RESULTS ===
+Total games: 300
+Total matchups: 6
+Wall time: 15m 42s
+
+=== DECK RANKINGS ===
+Rank | Deck            | Win Rate | Total W-L-D | Play Rate | Draw Rate
+-----|-----------------|----------|-------------|-----------|-----------
+  1 | white_creatures |   68.0%  |   136-64-0  |   70.0%   |   66.0%
+  2 | red_creatures   |   58.0%  |   116-84-0  |   62.0%   |   54.0%
+  3 | blue_creatures  |   42.0%  |    84-116-0 |   44.0%   |   40.0%
+
+=== DETAILED MATCHUP RESULTS ===
+white_creatures:
+  Overall: 136-64-0 (68.0%)
+  On play: 70-30 (70.0%)
+  On draw: 66-34 (66.0%)
+    vs red_creatures: 45-15 (0 draws) | Play: 23-7 | Draw: 22-8
+    vs blue_creatures: 51-19 (0 draws) | Play: 27-3 | Draw: 24-16
+```
+
+**CSV Files:**
+
+`tournament-results.csv`:
+```csv
+deck,total_wins,total_losses,total_draws,win_rate,play_wins,draw_wins,play_win_rate,draw_win_rate
+white_creatures,136,64,0,68.00,70,66,70.00,66.00
+red_creatures,116,84,0,58.00,62,54,62.00,54.00
+blue_creatures,84,116,0,42.00,44,40,44.00,40.00
+```
+
+`matchup-matrix.csv`:
+```csv
+deck,white_creatures,red_creatures,blue_creatures
+white_creatures,-,45-15,51-19
+red_creatures,15-45,-,41-29
+blue_creatures,19-51,29-41,-
+```
+
+### Tournament Examples
+
+**Small Tournament (3 decks, 20 games each):**
+```bash
+./gradlew :game-server:runAiMatchup -Pargs="--tournament --games=20"
+```
+
+**Large Tournament (5+ decks, 100 games each, full replays):**
+```bash
+./gradlew :game-server:runAiMatchup -Pargs="--tournament --games=100 --save-replays --deck-pool=large-tournament.json"
+```
+
+**Custom Deck Pool Tournament:**
+```bash
+# Create custom-tournament.json
+{
+  "jsonDecks": ["red_creatures", "white_creatures"],
+  "textFiles": ["wauras.txt", "my-deck.txt"]
+}
+
+# Run tournament
+./gradlew :game-server:runAiMatchup -Pargs="--tournament --deck-pool=custom-tournament.json --games=75"
+```
+
+### Tournament Statistics
+
+The tournament system tracks:
+
+- **Overall Performance**: Total wins, losses, draws, and win rate
+- **Play/Draw Analysis**: Performance when going first vs second
+- **Head-to-Head Matchups**: Detailed results for each deck pairing
+- **First Player Advantage**: Quantification of going first benefit
+- **Completion Rates**: Game completion and draw statistics
+
+### Performance Considerations
+
+- **Tournament size**: N decks play N×(N-1)/2 matchups
+- **Time estimation**: ~2-3 seconds per game
+- **Memory usage**: Efficient streaming, suitable for 1000+ games
+- **Storage**: CSV files are small; enable `--save-replays` selectively
+
 ## Integration with Existing Tools
 
 This script uses the same infrastructure as:
