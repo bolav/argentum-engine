@@ -54,6 +54,10 @@ data class TournamentMatchupResult(
     val deck1DrawWins: Int, // wins when on draw
     val deck2PlayWins: Int,
     val deck2DrawWins: Int,
+    val deck1PlayDraws: Int,
+    val deck1DrawDraws: Int,
+    val deck2PlayDraws: Int,
+    val deck2DrawDraws: Int,
     val totalGames: Int
 )
 
@@ -62,8 +66,12 @@ data class DeckPerformance(
     var totalWins: Int,
     var totalLosses: Int,
     var totalDraws: Int,
+    var playGames: Int,
+    var drawGames: Int,
     var playWins: Int,
     var drawWins: Int,
+    var playDraws: Int,
+    var drawDraws: Int,
     var winRate: Double,
     var playWinRate: Double,
     var drawWinRate: Double,
@@ -511,8 +519,12 @@ fun runTournamentMatches(
             totalWins = 0,
             totalLosses = 0,
             totalDraws = 0,
+            playGames = 0,
+            drawGames = 0,
             playWins = 0,
             drawWins = 0,
+            playDraws = 0,
+            drawDraws = 0,
             winRate = 0.0,
             playWinRate = 0.0,
             drawWinRate = 0.0
@@ -551,13 +563,9 @@ fun runTournamentMatches(
         val totalGames = perf.totalWins + perf.totalLosses + perf.totalDraws
         perf.winRate = if (totalGames > 0) perf.totalWins.toDouble() / totalGames * 100 else 0.0
         
-        // Play games: games where this deck was on play (half of total games, rounded up)
-        val playGames = (totalGames + 1) / 2
-        perf.playWinRate = if (playGames > 0) perf.playWins.toDouble() / playGames * 100 else 0.0
+        perf.playWinRate = if (perf.playGames > 0) perf.playWins.toDouble() / perf.playGames * 100 else 0.0
         
-        // Draw games: games where this deck was on draw (half of total games, rounded down)
-        val drawGames = totalGames / 2
-        perf.drawWinRate = if (drawGames > 0) perf.drawWins.toDouble() / drawGames * 100 else 0.0
+        perf.drawWinRate = if (perf.drawGames > 0) perf.drawWins.toDouble() / perf.drawGames * 100 else 0.0
     }
 
     val deckByName = decks.associateBy { it.name }
@@ -598,6 +606,10 @@ fun runMatchup(
     var deck1DrawWins = 0
     var deck2PlayWins = 0
     var deck2DrawWins = 0
+    var deck1PlayDraws = 0
+    var deck1DrawDraws = 0
+    var deck2PlayDraws = 0
+    var deck2DrawDraws = 0
     
     for (gameId in 0 until games) {
         val actualGameId = startGameId + gameId
@@ -642,7 +654,16 @@ fun runMatchup(
                     deck1DrawWins++
                 }
             }
-            "draw" -> draws++
+            "draw" -> {
+                draws++
+                if (deck1GoesFirst) {
+                    deck1PlayDraws++
+                    deck2DrawDraws++
+                } else {
+                    deck2PlayDraws++
+                    deck1DrawDraws++
+                }
+            }
         }
         
         // Save replay if requested
@@ -663,6 +684,10 @@ fun runMatchup(
         deck1DrawWins = deck1DrawWins,
         deck2PlayWins = deck2PlayWins,
         deck2DrawWins = deck2DrawWins,
+        deck1PlayDraws = deck1PlayDraws,
+        deck1DrawDraws = deck1DrawDraws,
+        deck2PlayDraws = deck2PlayDraws,
+        deck2DrawDraws = deck2DrawDraws,
         totalGames = games
     )
 }
@@ -672,21 +697,40 @@ fun updateDeckPerformances(performances: MutableMap<String, DeckPerformance>, ma
     val deck2Perf = performances[matchup.deck2]!!
     
     // Update deck 1
+    val deck1PlayGames = (matchup.totalGames + 1) / 2
+    val deck1DrawGames = matchup.totalGames / 2
+    val deck2PlayGames = deck1DrawGames
+    val deck2DrawGames = deck1PlayGames
+
     deck1Perf.totalWins += matchup.deck1Wins
     deck1Perf.totalLosses += matchup.deck2Wins
     deck1Perf.totalDraws += matchup.draws
+    deck1Perf.playGames += deck1PlayGames
+    deck1Perf.drawGames += deck1DrawGames
     deck1Perf.playWins += matchup.deck1PlayWins
     deck1Perf.drawWins += matchup.deck1DrawWins
+    deck1Perf.playDraws += matchup.deck1PlayDraws
+    deck1Perf.drawDraws += matchup.deck1DrawDraws
     deck1Perf.matchupResults[matchup.deck2] = matchup
     
     // Update deck 2
     deck2Perf.totalWins += matchup.deck2Wins
     deck2Perf.totalLosses += matchup.deck1Wins
     deck2Perf.totalDraws += matchup.draws
+    deck2Perf.playGames += deck2PlayGames
+    deck2Perf.drawGames += deck2DrawGames
     deck2Perf.playWins += matchup.deck2PlayWins
     deck2Perf.drawWins += matchup.deck2DrawWins
+    deck2Perf.playDraws += matchup.deck2PlayDraws
+    deck2Perf.drawDraws += matchup.deck2DrawDraws
     deck2Perf.matchupResults[matchup.deck1] = matchup
 }
+
+private fun playLosses(perf: DeckPerformance): Int =
+    perf.playGames - perf.playWins - perf.playDraws
+
+private fun drawLosses(perf: DeckPerformance): Int =
+    perf.drawGames - perf.drawWins - perf.drawDraws
 
 fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
     println()
@@ -719,8 +763,8 @@ fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
     sortedPerformances.forEach { perf ->
         println("${perf.deckName}:")
         println("  Overall: ${perf.totalWins}-${perf.totalLosses}-${perf.totalDraws} (${String.format("%.1f", perf.winRate)}%)")
-        println("  On play: ${perf.playWins}-${perf.totalLosses - perf.drawWins} (${String.format("%.1f", perf.playWinRate)}%)")
-        println("  On draw: ${perf.drawWins}-${perf.totalLosses - perf.playWins} (${String.format("%.1f", perf.drawWinRate)}%)")
+        println("  On play: ${perf.playWins}-${playLosses(perf)}-${perf.playDraws} (${String.format("%.1f", perf.playWinRate)}%)")
+        println("  On draw: ${perf.drawWins}-${drawLosses(perf)}-${perf.drawDraws} (${String.format("%.1f", perf.drawWinRate)}%)")
         
         perf.matchupResults.values.sortedBy { it.deck2 }.forEach { matchup ->
             val opponent = if (matchup.deck1 == perf.deckName) matchup.deck2 else matchup.deck1
@@ -728,8 +772,14 @@ fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
             val losses = if (matchup.deck1 == perf.deckName) matchup.deck2Wins else matchup.deck1Wins
             val playWins = if (matchup.deck1 == perf.deckName) matchup.deck1PlayWins else matchup.deck2PlayWins
             val drawWins = if (matchup.deck1 == perf.deckName) matchup.deck1DrawWins else matchup.deck2DrawWins
+            val playDraws = if (matchup.deck1 == perf.deckName) matchup.deck1PlayDraws else matchup.deck2PlayDraws
+            val drawDraws = if (matchup.deck1 == perf.deckName) matchup.deck1DrawDraws else matchup.deck2DrawDraws
+            val playGames = if (matchup.deck1 == perf.deckName) (matchup.totalGames + 1) / 2 else matchup.totalGames / 2
+            val drawGames = if (matchup.deck1 == perf.deckName) matchup.totalGames / 2 else (matchup.totalGames + 1) / 2
+            val playLosses = playGames - playWins - playDraws
+            val drawLosses = drawGames - drawWins - drawDraws
             
-            println("    vs $opponent: $wins-$losses (${matchup.draws} draws) | Play: $playWins-${losses - drawWins} | Draw: $drawWins-${losses - playWins}")
+            println("    vs $opponent: $wins-$losses-${matchup.draws} | Play: $playWins-$playLosses-$playDraws | Draw: $drawWins-$drawLosses-$drawDraws")
         }
         println()
     }
@@ -759,10 +809,10 @@ fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
 fun saveTournamentResults(summary: TournamentSummary, outputDir: File) {
     // Save CSV with detailed results
     val csvFile = File(outputDir, "tournament-results.csv")
-    csvFile.writeText("deck,total_wins,total_losses,total_draws,win_rate,play_wins,draw_wins,play_win_rate,draw_win_rate\n")
+    csvFile.writeText("deck,total_wins,total_losses,total_draws,win_rate,play_games,play_wins,play_losses,play_draws,play_win_rate,draw_games,draw_wins,draw_losses,draw_draws,draw_win_rate\n")
     
     summary.deckPerformances.values.forEach { perf ->
-        csvFile.appendText("${perf.deckName},${perf.totalWins},${perf.totalLosses},${perf.totalDraws},${String.format("%.2f", perf.winRate)},${perf.playWins},${perf.drawWins},${String.format("%.2f", perf.playWinRate)},${String.format("%.2f", perf.drawWinRate)}\n")
+        csvFile.appendText("${perf.deckName},${perf.totalWins},${perf.totalLosses},${perf.totalDraws},${String.format("%.2f", perf.winRate)},${perf.playGames},${perf.playWins},${playLosses(perf)},${perf.playDraws},${String.format("%.2f", perf.playWinRate)},${perf.drawGames},${perf.drawWins},${drawLosses(perf)},${perf.drawDraws},${String.format("%.2f", perf.drawWinRate)}\n")
     }
     
     // Save matchup matrix
