@@ -9,6 +9,7 @@ Run automated AI vs AI games between defined decks with comprehensive statistics
 - **Statistics tracking**: Win rates, average turns, game duration, completion rates
 - **Replay saving**: Optional detailed game logs for every game
 - **CSV output**: Machine-readable results for further analysis
+- **Card importance ranking**: Sort each deck by cards most correlated with wins
 - **Progress tracking**: Real-time progress updates during long runs
 
 ## Quick Start
@@ -67,11 +68,26 @@ The script creates a timestamped directory with:
 ```
 ai-matchup-red_creatures-vs-white_creatures-20240506_123456/
 ├── results.csv              # Game-by-game results
+├── card-importance.csv      # Per-card win-rate lift ranking
+├── matchup-summary.txt      # Human-readable summary with card importance
 ├── game-1.log               # First game (if --save-replays)
 ├── game-2.log               # Second game (if --save-replays)
 ├── game-3.log               # Third game (if --save-replays)
 └── ...
 ```
+
+### Card Importance
+
+After a single matchup, the runner prints and saves a card ranking for both decks.
+Cards at the top had the highest positive score; cards at the bottom had the lowest score.
+
+The score is the deck's win-rate lift in games where the card was seen, weighted by how often it was seen:
+
+```
+score = (win rate when seen - deck baseline win rate) * seen games / total games
+```
+
+"Seen" includes opening hand, drawn cards, cast spells, played lands, discarded cards, and cards that moved to public zones. This is correlation, not proof that the card caused the wins, so use larger game counts for less noisy rankings.
 
 ### CSV Format
 
@@ -80,6 +96,13 @@ game,first_player,turns,actions,duration_ms,winner,p1_life,p2_life,completed,dra
 1,P1,15,42,1250,P1,20,0,true,
 2,P2,18,51,1450,P2,0,20,true,
 3,P1,50,134,3200,draw,5,5,false,maxTurns(50)
+```
+
+### Card Importance CSV Format
+
+```csv
+deck,rank,card,copies,score,seen_games,wins_when_seen,losses_when_seen,draws_when_seen,seen_win_rate,baseline_win_rate
+"red_aggro",1,"Emberheart Challenger",4,8.2500,42,28,14,0,66.67,58.00
 ```
 
 ### Console Output

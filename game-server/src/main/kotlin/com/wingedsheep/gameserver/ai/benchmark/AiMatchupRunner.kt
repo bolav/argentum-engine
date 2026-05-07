@@ -26,6 +26,7 @@ import com.wingedsheep.sdk.model.CardDefinition
 import com.wingedsheep.sdk.model.Deck
 import com.wingedsheep.sdk.model.EntityId
 import com.wingedsheep.sdk.model.Rarity
+import com.wingedsheep.sdk.core.Zone
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -117,7 +118,32 @@ data class MatchupResult(
     val drawRate: Double
 )
 
-data class GameRunResult(val result: GameResult, val log: String)
+data class CardObservation(
+    val cardName: String,
+    var seenGames: Int = 0,
+    var winsWhenSeen: Int = 0,
+    var lossesWhenSeen: Int = 0,
+    var drawsWhenSeen: Int = 0
+)
+
+data class CardImportance(
+    val cardName: String,
+    val copies: Int,
+    val seenGames: Int,
+    val winsWhenSeen: Int,
+    val lossesWhenSeen: Int,
+    val drawsWhenSeen: Int,
+    val seenWinRate: Double,
+    val baselineWinRate: Double,
+    val score: Double
+)
+
+data class GameRunResult(
+    val result: GameResult,
+    val log: String,
+    val p1SeenCards: Set<String> = emptySet(),
+    val p2SeenCards: Set<String> = emptySet()
+)
 
 fun main(args: Array<String>) {
     val tournamentMode = args.contains("--tournament")
@@ -251,6 +277,8 @@ fun runSingleMatchup(args: Array<String>) {
     var deck1DrawLosses = 0
     var deck2PlayLosses = 0
     var deck2DrawLosses = 0
+    val deck1CardObservations = mutableMapOf<String, CardObservation>()
+    val deck2CardObservations = mutableMapOf<String, CardObservation>()
     
     val wallTime = measureTime {
         for (gameId in 1..numGames) {
@@ -263,6 +291,15 @@ fun runSingleMatchup(args: Array<String>) {
                 playGame(registry, deck2, deck1, gameId, maxTurns, "P1")
             }
             results.add(result.result)
+
+            val deck1SeenCards = if (deck1GoesFirst) result.p1SeenCards else result.p2SeenCards
+            val deck2SeenCards = if (deck1GoesFirst) result.p2SeenCards else result.p1SeenCards
+            val deck1Won = (deck1GoesFirst && result.result.winnerLabel == "P1") ||
+                (!deck1GoesFirst && result.result.winnerLabel == "P2")
+            val deck2Won = (deck1GoesFirst && result.result.winnerLabel == "P2") ||
+                (!deck1GoesFirst && result.result.winnerLabel == "P1")
+            recordCardObservations(deck1CardObservations, deck1SeenCards, deck1Won, result.result.winnerLabel == "draw")
+            recordCardObservations(deck2CardObservations, deck2SeenCards, deck2Won, result.result.winnerLabel == "draw")
             
             // Track play/draw wins and losses
             when (result.result.winnerLabel) {
@@ -321,7 +358,9 @@ fun runSingleMatchup(args: Array<String>) {
 
     // Calculate and display final statistics
     val matchupStats = calculateMatchupStats(results)
-    displaySingleMatchupResults(deck1Display, deck2Display, matchupStats, deck1PlayWins, deck1DrawWins, deck1PlayLosses, deck1DrawLosses, deck2PlayWins, deck2DrawWins, deck2PlayLosses, deck2DrawLosses, wallTime, outputDir)
+    val deck1Importance = calculateCardImportance(deck1, deck1CardObservations, deck1PlayWins + deck1DrawWins, numGames)
+    val deck2Importance = calculateCardImportance(deck2, deck2CardObservations, deck2PlayWins + deck2DrawWins, numGames)
+    displaySingleMatchupResults(deck1Display, deck2Display, matchupStats, deck1PlayWins, deck1DrawWins, deck1PlayLosses, deck1DrawLosses, deck2PlayWins, deck2DrawWins, deck2PlayLosses, deck2DrawLosses, wallTime, outputDir, deck1Importance, deck2Importance)
 }
 
 fun runTournament(args: Array<String>) {
@@ -804,9 +843,16 @@ fun playGame(
     val p2Controller = EngineAiPlayerController(registry, p2) { state }
     fun controllerFor(id: EntityId) = if (id == p1) p1Controller else p2Controller
     fun label(id: EntityId) = if (id == p1) "P1" else "P2"
+    fun cardName(cardId: EntityId): String? = state.getEntity(cardId)?.get<CardComponent>()?.name
+    fun initialSeenCards(playerId: EntityId): MutableSet<String> =
+        state.getZone(playerId, Zone.HAND)
+            .mapNotNull { cardName(it) }
+            .toMutableSet()
 
     p1Controller.setDeckList(deck1.cards.groupingBy { it }.eachCount())
     p2Controller.setDeckList(deck2.cards.groupingBy { it }.eachCount())
+    val p1SeenCards = initialSeenCards(p1)
+    val p2SeenCards = initialSeenCards(p2)
 
     // Game log for AI context
     val recentGameLog = mutableListOf<String>()
@@ -882,9 +928,13 @@ fun playGame(
                     drawReason = "error(${result.error})"
                     break
                 }
+                recordSeenCardFromAction(fallbackAction, p1, p2, p1SeenCards, p2SeenCards) { cardName(it) }
+                recordSeenCardsFromEvents(fallback.events, p1, p2, p1SeenCards, p2SeenCards)
                 accumulateLog(fallback.events, actingPlayer, recentGameLog, maxLogSize)
                 state = fallback.state
             } else {
+                recordSeenCardFromAction(gameAction, p1, p2, p1SeenCards, p2SeenCards) { cardName(it) }
+                recordSeenCardsFromEvents(result.events, p1, p2, p1SeenCards, p2SeenCards)
                 accumulateLog(result.events, actingPlayer, recentGameLog, maxLogSize)
                 logEvents(result.events, log)
                 if (gameAction !is PassPriority) {
@@ -911,7 +961,9 @@ fun playGame(
     return GameRunResult(
         GameResult(gameId, turns, actionCount, duration.inWholeMilliseconds,
             p1Life, p2Life, state.gameOver, winner, drawReason),
-        log.toString()
+        log.toString(),
+        p1SeenCards,
+        p2SeenCards
     )
 }
 
@@ -937,6 +989,104 @@ fun calculateMatchupStats(results: List<GameResult>): MatchupResult {
     )
 }
 
+private fun recordSeenCardFromAction(
+    action: GameAction,
+    p1: EntityId,
+    p2: EntityId,
+    p1SeenCards: MutableSet<String>,
+    p2SeenCards: MutableSet<String>,
+    cardName: (EntityId) -> String?
+) {
+    val name = when (action) {
+        is CastSpell -> cardName(action.cardId)
+        is PlayLand -> cardName(action.cardId)
+        else -> null
+    } ?: return
+
+    when (action.playerId) {
+        p1 -> p1SeenCards.add(name)
+        p2 -> p2SeenCards.add(name)
+    }
+}
+
+private fun recordSeenCardsFromEvents(
+    events: List<GameEvent>,
+    p1: EntityId,
+    p2: EntityId,
+    p1SeenCards: MutableSet<String>,
+    p2SeenCards: MutableSet<String>
+) {
+    fun addForPlayer(playerId: EntityId, names: List<String>) {
+        when (playerId) {
+            p1 -> p1SeenCards.addAll(names)
+            p2 -> p2SeenCards.addAll(names)
+        }
+    }
+
+    for (event in events) {
+        when (event) {
+            is CardsDrawnEvent -> addForPlayer(event.playerId, event.cardNames)
+            is CardsDiscardedEvent -> addForPlayer(event.playerId, event.cardNames)
+            is SpellCastEvent -> addForPlayer(event.casterId, listOf(event.cardName))
+            is ZoneChangeEvent -> {
+                if (event.toZone == Zone.BATTLEFIELD || event.toZone == Zone.GRAVEYARD || event.toZone == Zone.EXILE) {
+                    addForPlayer(event.ownerId, listOf(event.entityName))
+                }
+            }
+            else -> Unit
+        }
+    }
+}
+
+private fun recordCardObservations(
+    observations: MutableMap<String, CardObservation>,
+    seenCards: Set<String>,
+    won: Boolean,
+    draw: Boolean
+) {
+    for (cardName in seenCards) {
+        val observation = observations.getOrPut(cardName) { CardObservation(cardName) }
+        observation.seenGames++
+        when {
+            draw -> observation.drawsWhenSeen++
+            won -> observation.winsWhenSeen++
+            else -> observation.lossesWhenSeen++
+        }
+    }
+}
+
+private fun calculateCardImportance(
+    deck: Deck,
+    observations: Map<String, CardObservation>,
+    deckWins: Int,
+    totalGames: Int
+): List<CardImportance> {
+    val baselineWinRate = if (totalGames > 0) deckWins.toDouble() / totalGames else 0.0
+    return deck.cards.groupingBy { it }.eachCount()
+        .map { (cardName, copies) ->
+            val observation = observations[cardName]
+            val seenGames = observation?.seenGames ?: 0
+            val winsWhenSeen = observation?.winsWhenSeen ?: 0
+            val lossesWhenSeen = observation?.lossesWhenSeen ?: 0
+            val drawsWhenSeen = observation?.drawsWhenSeen ?: 0
+            val seenWinRate = if (seenGames > 0) winsWhenSeen.toDouble() / seenGames else baselineWinRate
+            val confidence = if (totalGames > 0) seenGames.toDouble() / totalGames else 0.0
+            val score = (seenWinRate - baselineWinRate) * 100.0 * confidence
+            CardImportance(
+                cardName = cardName,
+                copies = copies,
+                seenGames = seenGames,
+                winsWhenSeen = winsWhenSeen,
+                lossesWhenSeen = lossesWhenSeen,
+                drawsWhenSeen = drawsWhenSeen,
+                seenWinRate = seenWinRate * 100.0,
+                baselineWinRate = baselineWinRate * 100.0,
+                score = score
+            )
+        }
+        .sortedWith(compareByDescending<CardImportance> { it.score }.thenByDescending { it.seenGames }.thenBy { it.cardName })
+}
+
 fun displaySingleMatchupResults(
     deck1Name: String, 
     deck2Name: String, 
@@ -950,7 +1100,9 @@ fun displaySingleMatchupResults(
     deck2PlayLosses: Int, 
     deck2DrawLosses: Int,
     wallTime: kotlin.time.Duration, 
-    outputDir: File
+    outputDir: File,
+    deck1Importance: List<CardImportance> = emptyList(),
+    deck2Importance: List<CardImportance> = emptyList()
 ) {
     println()
     println("=== SINGLE MATCHUP RESULTS ===")
@@ -1012,9 +1164,12 @@ fun displaySingleMatchupResults(
     println("Second player wins: $secondPlayerWins (${String.format("%.1f", if (stats.totalGames > 0) secondPlayerWins.toDouble() / stats.totalGames * 100 else 0.0)}%)")
     println("First player advantage: ${String.format("%+.1f", firstPlayerWinRate - 50.0)}%")
     println()
+
+    printCardImportance(deck1Name, deck1Importance)
+    printCardImportance(deck2Name, deck2Importance)
     
     // Save detailed summary to file
-    saveSingleMatchupSummary(deck1Name, deck2Name, stats, deck1PlayWins, deck1DrawWins, deck1PlayLosses, deck1DrawLosses, deck2PlayWins, deck2DrawWins, deck2PlayLosses, deck2DrawLosses, outputDir)
+    saveSingleMatchupSummary(deck1Name, deck2Name, stats, deck1PlayWins, deck1DrawWins, deck1PlayLosses, deck1DrawLosses, deck2PlayWins, deck2DrawWins, deck2PlayLosses, deck2DrawLosses, outputDir, deck1Importance, deck2Importance)
     
     println("Results saved to: ${outputDir.absolutePath}")
 }
@@ -1031,7 +1186,9 @@ fun saveSingleMatchupSummary(
     deck2DrawWins: Int, 
     deck2PlayLosses: Int, 
     deck2DrawLosses: Int,
-    outputDir: File
+    outputDir: File,
+    deck1Importance: List<CardImportance> = emptyList(),
+    deck2Importance: List<CardImportance> = emptyList()
 ) {
     val summaryFile = File(outputDir, "matchup-summary.txt")
     summaryFile.writeText("=== SINGLE MATCHUP SUMMARY ===\n")
@@ -1080,6 +1237,64 @@ fun saveSingleMatchupSummary(
     summaryFile.appendText("=== FIRST PLAYER ADVANTAGE ===\n")
     summaryFile.appendText("First player wins: $firstPlayerWins (${String.format("%.1f", firstPlayerWinRate)}%)\n")
     summaryFile.appendText("First player advantage: ${String.format("%+.1f", firstPlayerWinRate - 50.0)}%\n")
+
+    appendCardImportance(summaryFile, deck1Name, deck1Importance)
+    appendCardImportance(summaryFile, deck2Name, deck2Importance)
+    saveCardImportanceCsv(outputDir, deck1Name, deck1Importance, deck2Name, deck2Importance)
+}
+
+private fun printCardImportance(deckName: String, importance: List<CardImportance>) {
+    if (importance.isEmpty()) return
+
+    println("=== CARD IMPORTANCE: $deckName ===")
+    println("Score is win-rate lift in percentage points, weighted by how often the card was seen.")
+    println("Top cards:")
+    importance.take(10).forEach { card ->
+        println("  ${formatCardImportance(card)}")
+    }
+    println("Bottom cards:")
+    importance.takeLast(10).asReversed().forEach { card ->
+        println("  ${formatCardImportance(card)}")
+    }
+    println()
+}
+
+private fun appendCardImportance(summaryFile: File, deckName: String, importance: List<CardImportance>) {
+    if (importance.isEmpty()) return
+
+    summaryFile.appendText("\n=== CARD IMPORTANCE: $deckName ===\n")
+    summaryFile.appendText("Score is win-rate lift in percentage points, weighted by how often the card was seen.\n")
+    importance.forEach { card ->
+        summaryFile.appendText("${formatCardImportance(card)}\n")
+    }
+}
+
+private fun formatCardImportance(card: CardImportance): String =
+    "${String.format("%+6.2f", card.score)}  ${card.copies}x ${card.cardName}  seen=${card.seenGames}  record=${card.winsWhenSeen}-${card.lossesWhenSeen}-${card.drawsWhenSeen}  seenWR=${String.format("%.1f", card.seenWinRate)}%  baseline=${String.format("%.1f", card.baselineWinRate)}%"
+
+private fun saveCardImportanceCsv(
+    outputDir: File,
+    deck1Name: String,
+    deck1Importance: List<CardImportance>,
+    deck2Name: String,
+    deck2Importance: List<CardImportance>
+) {
+    val csvFile = File(outputDir, "card-importance.csv")
+    csvFile.writeText("deck,rank,card,copies,score,seen_games,wins_when_seen,losses_when_seen,draws_when_seen,seen_win_rate,baseline_win_rate\n")
+    fun append(deckName: String, importance: List<CardImportance>) {
+        importance.forEachIndexed { index, card ->
+            csvFile.appendText(
+                "${csv(deckName)},${index + 1},${csv(card.cardName)},${card.copies},${String.format("%.4f", card.score)},${card.seenGames},${card.winsWhenSeen},${card.lossesWhenSeen},${card.drawsWhenSeen},${String.format("%.2f", card.seenWinRate)},${String.format("%.2f", card.baselineWinRate)}\n"
+            )
+        }
+    }
+    append(deck1Name, deck1Importance)
+    append(deck2Name, deck2Importance)
+}
+
+private fun csv(value: String): String {
+    val escaped = value.replace("\"", "\"\"")
+    return "\"$escaped\""
 }
 
 fun displayResults(deck1Name: String, deck2Name: String, stats: MatchupResult, wallTime: kotlin.time.Duration, outputDir: File) {
