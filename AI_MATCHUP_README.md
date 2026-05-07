@@ -232,6 +232,7 @@ For 1000+ games, consider:
 ## Tournament Mode
 
 Run comprehensive tournaments with multiple decks playing against each other in round-robin format.
+Tournament output also includes `tournament-card-importance.csv`, which ranks cards for each deck across all of that deck's tournament games using the same win-rate lift score as single-matchup mode.
 
 ### Quick Start
 

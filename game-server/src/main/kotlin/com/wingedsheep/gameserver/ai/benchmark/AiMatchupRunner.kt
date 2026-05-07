@@ -72,6 +72,7 @@ data class DeckPerformance(
 
 data class TournamentSummary(
     val deckPerformances: Map<String, DeckPerformance>,
+    val cardImportances: Map<String, List<CardImportance>>,
     val totalGames: Int,
     val totalMatchups: Int,
     val wallTime: kotlin.time.Duration
@@ -499,6 +500,7 @@ fun runTournamentMatches(
     registry: CardRegistry
 ): TournamentSummary {
     val deckPerformances = mutableMapOf<String, DeckPerformance>()
+    val cardObservations = mutableMapOf<String, MutableMap<String, CardObservation>>()
     val allMatchups = mutableListOf<TournamentMatchupResult>()
     var totalGames = 0
     
@@ -515,6 +517,7 @@ fun runTournamentMatches(
             playWinRate = 0.0,
             drawWinRate = 0.0
         )
+        cardObservations[deck.name] = mutableMapOf()
     }
     
     val wallTime = measureTime {
@@ -528,7 +531,7 @@ fun runTournamentMatches(
                 
                 val matchupResult = runMatchup(
                     deck1, deck2, gamesPerMatchup, maxTurns, saveReplays, 
-                    outputDir, registry, totalGames + 1
+                    outputDir, registry, totalGames + 1, cardObservations
                 )
                 
                 allMatchups.add(matchupResult)
@@ -556,9 +559,21 @@ fun runTournamentMatches(
         val drawGames = totalGames / 2
         perf.drawWinRate = if (drawGames > 0) perf.drawWins.toDouble() / drawGames * 100 else 0.0
     }
+
+    val deckByName = decks.associateBy { it.name }
+    val cardImportances = deckPerformances.mapValues { (deckName, perf) ->
+        val playedGames = perf.totalWins + perf.totalLosses + perf.totalDraws
+        calculateCardImportance(
+            deck = deckByName.getValue(deckName).deck,
+            observations = cardObservations[deckName].orEmpty(),
+            deckWins = perf.totalWins,
+            totalGames = playedGames
+        )
+    }
     
     return TournamentSummary(
         deckPerformances = deckPerformances,
+        cardImportances = cardImportances,
         totalGames = totalGames,
         totalMatchups = allMatchups.size,
         wallTime = wallTime
@@ -573,7 +588,8 @@ fun runMatchup(
     saveReplays: Boolean,
     outputDir: File,
     registry: CardRegistry,
-    startGameId: Int
+    startGameId: Int,
+    cardObservations: MutableMap<String, MutableMap<String, CardObservation>>? = null
 ): TournamentMatchupResult {
     var deck1Wins = 0
     var deck2Wins = 0
@@ -592,6 +608,19 @@ fun runMatchup(
             playGame(registry, deck1.deck, deck2.deck, actualGameId, maxTurns, "P1")
         } else {
             playGame(registry, deck2.deck, deck1.deck, actualGameId, maxTurns, "P1")
+        }
+
+        val deck1SeenCards = if (deck1GoesFirst) result.p1SeenCards else result.p2SeenCards
+        val deck2SeenCards = if (deck1GoesFirst) result.p2SeenCards else result.p1SeenCards
+        val deck1Won = (deck1GoesFirst && result.result.winnerLabel == "P1") ||
+            (!deck1GoesFirst && result.result.winnerLabel == "P2")
+        val deck2Won = (deck1GoesFirst && result.result.winnerLabel == "P2") ||
+            (!deck1GoesFirst && result.result.winnerLabel == "P1")
+        cardObservations?.get(deck1.name)?.let {
+            recordCardObservations(it, deck1SeenCards, deck1Won, result.result.winnerLabel == "draw")
+        }
+        cardObservations?.get(deck2.name)?.let {
+            recordCardObservations(it, deck2SeenCards, deck2Won, result.result.winnerLabel == "draw")
         }
         
         when (result.result.winnerLabel) {
@@ -704,6 +733,24 @@ fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
         }
         println()
     }
+
+    println("=== CARD IMPORTANCE ===")
+    println("Score is win-rate lift in percentage points, weighted by how often the card was seen.")
+    sortedPerformances.forEach { perf ->
+        val importance = summary.cardImportances[perf.deckName].orEmpty()
+        if (importance.isNotEmpty()) {
+            println("${perf.deckName}:")
+            println("  Top cards:")
+            importance.take(5).forEach { card ->
+                println("    ${formatCardImportance(card)}")
+            }
+            println("  Bottom cards:")
+            importance.takeLast(5).asReversed().forEach { card ->
+                println("    ${formatCardImportance(card)}")
+            }
+        }
+    }
+    println()
     
     // Save detailed results to files
     saveTournamentResults(summary, outputDir)
@@ -744,10 +791,21 @@ fun saveTournamentResults(summary: TournamentSummary, outputDir: File) {
         }
         matrixFile.appendText(row.joinToString(",") + "\n")
     }
+
+    val importanceFile = File(outputDir, "tournament-card-importance.csv")
+    importanceFile.writeText("deck,rank,card,copies,score,seen_games,wins_when_seen,losses_when_seen,draws_when_seen,seen_win_rate,baseline_win_rate\n")
+    summary.cardImportances.forEach { (deckName, importance) ->
+        importance.forEachIndexed { index, card ->
+            importanceFile.appendText(
+                "${csv(deckName)},${index + 1},${csv(card.cardName)},${card.copies},${String.format("%.4f", card.score)},${card.seenGames},${card.winsWhenSeen},${card.lossesWhenSeen},${card.drawsWhenSeen},${String.format("%.2f", card.seenWinRate)},${String.format("%.2f", card.baselineWinRate)}\n"
+            )
+        }
+    }
     
     println("Detailed results saved to:")
     println("  - ${csvFile.absolutePath}")
     println("  - ${matrixFile.absolutePath}")
+    println("  - ${importanceFile.absolutePath}")
 }
 
 @Serializable
