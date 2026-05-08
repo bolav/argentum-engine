@@ -24,6 +24,7 @@ import com.wingedsheep.mtg.sets.definitions.ecl.LorwynEclipsedSet
 import com.wingedsheep.mtg.sets.definitions.eoe.EdgeOfEternitiesSet
 import com.wingedsheep.mtg.sets.definitions.fdn.FoundationsSet
 import com.wingedsheep.mtg.sets.definitions.mkm.MurdersAtKarlovManorSet
+import com.wingedsheep.mtg.sets.definitions.otj.OutlawsOfThunderJunctionSet
 import com.wingedsheep.mtg.sets.definitions.spm.SpiderManSet
 import com.wingedsheep.mtg.sets.definitions.woe.WildsOfEldrainSet
 import com.wingedsheep.sdk.model.CardDefinition
@@ -216,6 +217,7 @@ fun runSingleMatchup(args: Array<String>) {
         addAll(EdgeOfEternitiesSet.cards)
         addAll(FoundationsSet.cards)
         addAll(MurdersAtKarlovManorSet.cards)
+        addAll(OutlawsOfThunderJunctionSet.cards)
         addAll(SpiderManSet.cards)
         addAll(WildsOfEldrainSet.cards)
         // Add more sets as needed
@@ -403,6 +405,7 @@ fun runTournament(args: Array<String>) {
         addAll(EdgeOfEternitiesSet.cards)
         addAll(FoundationsSet.cards)
         addAll(MurdersAtKarlovManorSet.cards)
+        addAll(OutlawsOfThunderJunctionSet.cards)
         addAll(SpiderManSet.cards)
         addAll(WildsOfEldrainSet.cards)
     }
