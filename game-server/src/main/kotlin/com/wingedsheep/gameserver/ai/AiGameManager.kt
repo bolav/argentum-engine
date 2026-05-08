@@ -137,6 +137,8 @@ class AiGameManager(
      * Create an AI opponent and add it to the game session.
      *
      * @param gameSession The game session to add the AI to.
+     * @param setCode Optional set code for random deck generation (used if deckList is null).
+     * @param deckList Optional specific deck list for the AI. If null, generates random deck from setCode.
      * @param onActionReady Callback invoked (async) when the AI wants to submit an action.
      *        This MUST NOT be called while holding stateLock.
      * @param onMulliganKeep Callback for AI keeping hand.
@@ -147,6 +149,7 @@ class AiGameManager(
     fun createAiOpponent(
         gameSession: GameSession,
         setCode: String? = null,
+        deckList: Map<String, Int>? = null,
         onActionReady: (EntityId, GameAction) -> Unit,
         onMulliganKeep: (EntityId) -> Unit,
         onMulliganTake: (EntityId) -> Unit,
@@ -186,12 +189,17 @@ class AiGameManager(
         identity.webSocketSession = aiSession
         sessionRegistry.register(identity, aiSession, playerSession)
 
-        // Quick games use a sealed deck — use same set as human player if provided
-        val aiDeck = if (setCode != null) deckGenerator.generate(setCode) else deckGenerator.generate()
-        gameSession.addPlayer(playerSession, aiDeck)
+        // Use provided deck list or generate random sealed deck
+        val aiDeckList = if (deckList != null) {
+            deckList
+        } else {
+            // Generate random sealed deck (already returns Map<String, Int>)
+            if (setCode != null) deckGenerator.generate(setCode) else deckGenerator.generate()
+        }
+        gameSession.addPlayer(playerSession, aiDeckList)
 
         // Give the AI knowledge of its deck composition
-        controller.setDeckList(aiDeck)
+        controller.setDeckList(aiDeckList)
 
         // Store persistence info
         gameSession.setPlayerPersistenceInfo(aiPlayerId, aiName, identity.token, isAi = true)

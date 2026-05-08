@@ -17,11 +17,15 @@ import com.wingedsheep.engine.view.LegalActionEnricher
 import com.wingedsheep.engine.view.LegalActionInfo
 import com.wingedsheep.engine.legalactions.LegalActionEnumerator
 import com.wingedsheep.engine.mechanics.mana.ManaSolver
-import com.wingedsheep.mtg.sets.definitions.bloomburrow.BloomburrowSet
-import com.wingedsheep.mtg.sets.definitions.duskmourn.DuskmournSet
-import com.wingedsheep.mtg.sets.definitions.edgeofeternities.EdgeOfEternitiesSet
-import com.wingedsheep.mtg.sets.definitions.spiderman.SpiderManSet
-import com.wingedsheep.mtg.sets.definitions.wildsofeldraineset.WildsOfEldrainSet
+import com.wingedsheep.mtg.sets.definitions.blb.BloomburrowSet
+import com.wingedsheep.mtg.sets.definitions.dom.DominariaSet
+import com.wingedsheep.mtg.sets.definitions.dsk.DuskmournSet
+import com.wingedsheep.mtg.sets.definitions.ecl.LorwynEclipsedSet
+import com.wingedsheep.mtg.sets.definitions.eoe.EdgeOfEternitiesSet
+import com.wingedsheep.mtg.sets.definitions.fdn.FoundationsSet
+import com.wingedsheep.mtg.sets.definitions.mkm.MurdersAtKarlovManorSet
+import com.wingedsheep.mtg.sets.definitions.spm.SpiderManSet
+import com.wingedsheep.mtg.sets.definitions.woe.WildsOfEldrainSet
 import com.wingedsheep.sdk.model.CardDefinition
 import com.wingedsheep.sdk.model.Deck
 import com.wingedsheep.sdk.model.EntityId
@@ -204,12 +208,16 @@ fun runSingleMatchup(args: Array<String>) {
 
     // Setup card registry with all available sets
     val allCards = mutableListOf<CardDefinition>().apply {
-        addAll(BloomburrowSet.allCards)
+        addAll(BloomburrowSet.cards)
         addAll(BloomburrowSet.basicLands)
-        addAll(DuskmournSet.allCards)
-        addAll(EdgeOfEternitiesSet.allCards)
-        addAll(SpiderManSet.allCards)
-        addAll(WildsOfEldrainSet.allCards)
+        addAll(DominariaSet.cards)
+        addAll(DuskmournSet.cards)
+        addAll(LorwynEclipsedSet.cards)
+        addAll(EdgeOfEternitiesSet.cards)
+        addAll(FoundationsSet.cards)
+        addAll(MurdersAtKarlovManorSet.cards)
+        addAll(SpiderManSet.cards)
+        addAll(WildsOfEldrainSet.cards)
         // Add more sets as needed
     }
     val registry = CardRegistry().apply { register(allCards) }
@@ -387,12 +395,16 @@ fun runTournament(args: Array<String>) {
 
     // Setup card registry
     val allCards = mutableListOf<CardDefinition>().apply {
-        addAll(BloomburrowSet.allCards)
+        addAll(BloomburrowSet.cards)
         addAll(BloomburrowSet.basicLands)
-        addAll(DuskmournSet.allCards)
-        addAll(EdgeOfEternitiesSet.allCards)
-        addAll(SpiderManSet.allCards)
-        addAll(WildsOfEldrainSet.allCards)
+        addAll(DominariaSet.cards)
+        addAll(DuskmournSet.cards)
+        addAll(LorwynEclipsedSet.cards)
+        addAll(EdgeOfEternitiesSet.cards)
+        addAll(FoundationsSet.cards)
+        addAll(MurdersAtKarlovManorSet.cards)
+        addAll(SpiderManSet.cards)
+        addAll(WildsOfEldrainSet.cards)
     }
     val registry = CardRegistry().apply { register(allCards) }
 

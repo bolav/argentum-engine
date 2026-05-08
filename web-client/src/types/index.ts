@@ -391,6 +391,7 @@ export {
   createJoinQuickGameLobbyMessage,
   createLeaveQuickGameLobbyMessage,
   createSubmitQuickGameLobbyDeckMessage,
+  createSetQuickGameLobbyAiDeckMessage,
   createSetQuickGameLobbyReadyMessage,
   createSetQuickGameLobbySetCodeMessage,
   createSetQuickGameLobbyPublicMessage,

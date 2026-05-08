@@ -14,6 +14,7 @@ import {
   createJoinQuickGameLobbyMessage,
   createLeaveQuickGameLobbyMessage,
   createSubmitQuickGameLobbyDeckMessage,
+  createSetQuickGameLobbyAiDeckMessage,
   createSetQuickGameLobbyReadyMessage,
   createSetQuickGameLobbySetCodeMessage,
   createSetQuickGameLobbyPublicMessage,
@@ -27,7 +28,7 @@ export interface QuickGameLobbySliceState {
 }
 
 export interface QuickGameLobbySliceActions {
-  createQuickGameLobby: (vsAi?: boolean, setCode?: string, isPublic?: boolean, format?: DeckFormat) => void
+  createQuickGameLobby: (vsAi?: boolean, setCode?: string, isPublic?: boolean, format?: DeckFormat, aiDeckList?: Record<string, number>) => void
   joinQuickGameLobby: (lobbyId: string) => void
   leaveQuickGameLobby: () => void
   submitQuickGameLobbyDeck: (deckList: Record<string, number>, commander?: string | null) => void
@@ -35,6 +36,7 @@ export interface QuickGameLobbySliceActions {
   setQuickGameLobbySetCode: (setCode: string | null) => void
   setQuickGameLobbyPublic: (isPublic: boolean) => void
   setQuickGameLobbyFormat: (format: DeckFormat | null) => void
+  setQuickGameLobbyAiDeck: (aiDeckList: Record<string, number>) => void
 }
 
 export type QuickGameLobbySlice = QuickGameLobbySliceState & QuickGameLobbySliceActions
@@ -42,8 +44,8 @@ export type QuickGameLobbySlice = QuickGameLobbySliceState & QuickGameLobbySlice
 export const createQuickGameLobbySlice: SliceCreator<QuickGameLobbySlice> = (set) => ({
   quickGameLobbyState: null,
 
-  createQuickGameLobby: (vsAi, setCode, isPublic, format) => {
-    getWebSocket()?.send(createCreateQuickGameLobbyMessage(vsAi, setCode, isPublic, format))
+  createQuickGameLobby: (vsAi, setCode, isPublic, format, aiDeckList) => {
+    getWebSocket()?.send(createCreateQuickGameLobbyMessage(vsAi, setCode, isPublic, format, aiDeckList))
   },
 
   joinQuickGameLobby: (lobbyId) => {
@@ -73,5 +75,9 @@ export const createQuickGameLobbySlice: SliceCreator<QuickGameLobbySlice> = (set
 
   setQuickGameLobbyFormat: (format) => {
     getWebSocket()?.send(createSetQuickGameLobbyFormatMessage(format))
+  },
+
+  setQuickGameLobbyAiDeck: (aiDeckList) => {
+    getWebSocket()?.send(createSetQuickGameLobbyAiDeckMessage(aiDeckList))
   },
 })

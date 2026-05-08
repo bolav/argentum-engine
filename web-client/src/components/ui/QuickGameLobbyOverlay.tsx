@@ -38,6 +38,7 @@ export function QuickGameLobbyOverlay() {
   const setSetCode = useGameStore((s) => s.setQuickGameLobbySetCode)
   const setPublic = useGameStore((s) => s.setQuickGameLobbyPublic)
   const setFormat = useGameStore((s) => s.setQuickGameLobbyFormat)
+  const setQuickGameLobbyAiDeck = useGameStore((s) => s.setQuickGameLobbyAiDeck)
   const leave = useGameStore((s) => s.leaveQuickGameLobby)
 
   // Throttle deck submissions: the picker fires several times per keystroke, but we only
@@ -51,6 +52,7 @@ export function QuickGameLobbyOverlay() {
   const debounceRef = useRef<number | null>(null)
   const [deckValid, setDeckValid] = useState<boolean>(true)
   const [copied, setCopied] = useState(false)
+  const [aiDeckList, setAiDeckList] = useState<Record<string, number>>({})
 
   const handleDeckChange = useCallback(
     (deckList: Record<string, number>, commander?: string | null) => {
@@ -62,16 +64,28 @@ export function QuickGameLobbyOverlay() {
       pendingCommanderRef.current = commander ?? null
       if (debounceRef.current !== null) window.clearTimeout(debounceRef.current)
       debounceRef.current = window.setTimeout(() => {
-        const pending = pendingDeckRef.current
-        if (!pending) return
-        const pendingCmdr = pendingCommanderRef.current
-        const pendingKey = `${serializeDeck(pending)}|${pendingCmdr ?? ''}`
-        if (pendingKey === lastSubmittedKeyRef.current) return
-        lastSubmittedKeyRef.current = pendingKey
-        submitDeck(pending, pendingCmdr)
-      }, 250)
+        if (pendingDeckRef.current === null) return
+        submitDeck(pendingDeckRef.current, pendingCommanderRef.current)
+        lastSubmittedKeyRef.current = key
+        pendingDeckRef.current = null
+        pendingCommanderRef.current = null
+      }, 300)
     },
     [submitDeck]
+  )
+
+  const handleAiDeckChange = useCallback(
+    (deckList: Record<string, number>) => {
+      setAiDeckList(deckList)
+      // Store the AI deck list and send it to the server
+      if (lobby?.vsAi) {
+        // Use the setQuickGameLobbyAiDeck action to store the AI deck
+        setQuickGameLobbyAiDeck(deckList)
+      }
+      // Log the AI deck selection for debugging
+      console.log('AI deck selected:', Object.keys(deckList).length, 'cards')
+    },
+    [lobby?.vsAi, setQuickGameLobbyAiDeck]
   )
 
   // Flush any pending deck on unmount so we don't drop the user's last edit.
@@ -235,6 +249,29 @@ export function QuickGameLobbyOverlay() {
           format={lobby.format ?? null}
         />
 
+        {lobby.vsAi && (
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ 
+              fontSize: '14px', 
+              fontWeight: '600', 
+              marginBottom: '12px', 
+              color: 'var(--text-secondary)' 
+            }}>
+              AI Deck Selection {Object.keys(aiDeckList).length > 0 && `(${Object.values(aiDeckList).reduce((sum, count) => sum + count, 0)} cards)`}
+            </h3>
+            <DeckPicker
+              onDeckChange={handleAiDeckChange}
+              onValidityChange={() => {}} // AI deck validity doesn't need to be tracked
+              onSetCodeChange={() => {}} // AI deck doesn't need set code changes
+              initialSetCode={null}
+              availableSets={availableSets}
+              disabled={youReady}
+              format={lobby.format ?? null}
+            />
+          </div>
+        )}
+
+        
         <div className={styles.actionsRow}>
           {youReady ? (
             <button onClick={() => setReady(false)} className={styles.startButton} type="button">

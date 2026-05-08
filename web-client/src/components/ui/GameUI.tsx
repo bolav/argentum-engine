@@ -145,6 +145,8 @@ function ConnectionOverlay({
   }
 
   const handlePlayVsAi = () => {
+    // For now, pass empty AI deck list (random deck)
+    // TODO: Add AI deck selection UI to home screen
     createQuickGameLobby(true)
   }
 

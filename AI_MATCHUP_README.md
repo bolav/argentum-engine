@@ -244,7 +244,8 @@ Tournament output also includes `tournament-card-importance.csv`, which ranks ca
 ./gradlew :game-server:runAiMatchup -Pargs="--tournament --games=50"
 
 # Custom deck pool with more games
-./gradlew :game-server:runAiMatchup -Pargs="--tournament --deck-pool=my-tournament.json --games=100 --save-replays"
+./gradlew :game-server:runAiMatchup -Pargs="--tournament --deck-pool=tournament-decks.json --games=100"
+./gradlew :game-server:runAiMatchup -Pargs="--tournament --deck-pool=tournament-decks.json --games=100 --save-replays"
 ```
 
 ### Tournament Features

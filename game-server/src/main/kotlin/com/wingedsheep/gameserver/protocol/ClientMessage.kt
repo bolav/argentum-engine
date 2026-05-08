@@ -26,9 +26,14 @@ sealed interface ClientMessage {
     @Serializable
     @SerialName("createGame")
     data class CreateGame(
+        
         val deckList: Map<String, Int>,
+       
         val vsAi: Boolean = false,
+       
         val setCode: String? = null,
+        val aiDeckList: Map<String, Int>? = null
+    ,
         /**
          * Optional ordered, per-card entries with pinned printings. When non-empty, this is
          * authoritative and [deckList] is ignored. When null/empty the legacy [deckList] path
@@ -381,7 +386,8 @@ sealed interface ClientMessage {
         val vsAi: Boolean = false,
         val setCode: String? = null,
         val isPublic: Boolean = false,
-        val format: com.wingedsheep.sdk.core.DeckFormat? = null
+        val format: com.wingedsheep.sdk.core.DeckFormat? = null,
+        val aiDeckList: Map<String, Int>? = null
     ) : ClientMessage
 
     /** Join an existing quick-game lobby by its short code. */
@@ -412,6 +418,15 @@ sealed interface ClientMessage {
         val cardEntries: List<DeckEntryDTO>? = null,
         /** Optional pinned printing for [commander]. Ignored when [commander] is null. */
         val commanderPrinting: PrintingRef? = null,
+    ) : ClientMessage
+
+    /**
+     * Set the AI deck list for an AI lobby. Only the host can set this.
+     */
+    @Serializable
+    @SerialName("setQuickGameLobbyAiDeck")
+    data class SetQuickGameLobbyAiDeck(
+        val aiDeckList: Map<String, Int>
     ) : ClientMessage
 
     /** Toggle this player's ready flag. The server starts the game when both players are ready. */

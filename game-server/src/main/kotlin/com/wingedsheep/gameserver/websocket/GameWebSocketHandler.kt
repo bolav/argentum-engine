@@ -123,6 +123,7 @@ class GameWebSocketHandler(
                 is ClientMessage.JoinQuickGameLobby,
                 is ClientMessage.LeaveQuickGameLobby,
                 is ClientMessage.SubmitQuickGameLobbyDeck,
+                is ClientMessage.SetQuickGameLobbyAiDeck,
                 is ClientMessage.SetQuickGameLobbyReady,
                 is ClientMessage.SetQuickGameLobbySetCode,
                 is ClientMessage.SetQuickGameLobbyPublic,

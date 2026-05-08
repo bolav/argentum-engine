@@ -727,6 +727,7 @@ export type GameStore = {
   setQuickGameLobbySetCode: (setCode: string | null) => void
   setQuickGameLobbyPublic: (isPublic: boolean) => void
   setQuickGameLobbyFormat: (format: DeckFormat | null) => void
+  setQuickGameLobbyAiDeck: (aiDeckList: Record<string, number>) => void
 
   // Draft slice
   deckBuildingState: DeckBuildingState | null

@@ -1363,6 +1363,7 @@ export type ClientMessage =
   | JoinQuickGameLobbyMessage
   | LeaveQuickGameLobbyMessage
   | SubmitQuickGameLobbyDeckMessage
+  | SetQuickGameLobbyAiDeckMessage
   | SetQuickGameLobbyReadyMessage
   | SetQuickGameLobbySetCodeMessage
   | SetQuickGameLobbyPublicMessage
@@ -1410,6 +1411,7 @@ export interface CreateGameMessage {
   readonly setCode?: string
   /** Rich entries with optional pinned printings. See [DeckEntry]. */
   readonly cardEntries?: readonly DeckEntry[]
+  readonly aiDeckList?: Record<string, number>
 }
 
 /**
@@ -1588,14 +1590,14 @@ export function createCreateGameMessage(
   vsAi?: boolean,
   setCode?: string,
   cardEntries?: readonly DeckEntry[],
-): CreateGameMessage {
+, aiDeckList?: Record<string, number>): CreateGameMessage {
   const msg: CreateGameMessage = {
     type: 'createGame',
     deckList,
     ...(vsAi ? { vsAi } : {}),
     ...(setCode ? { setCode } : {}),
     ...(cardEntries && cardEntries.length > 0 ? { cardEntries } : {}),
-  }
+ , ...(aiDeckList ? { aiDeckList } : {}) }
   return msg
 }
 
@@ -2131,6 +2133,7 @@ export interface CreateQuickGameLobbyMessage {
   readonly setCode?: string
   readonly isPublic?: boolean
   readonly format?: DeckFormat
+  readonly aiDeckList?: Record<string, number>
 }
 
 export interface JoinQuickGameLobbyMessage {
@@ -2151,6 +2154,11 @@ export interface SubmitQuickGameLobbyDeckMessage {
   readonly cardEntries?: readonly DeckEntry[]
   /** Optional pinned printing for the commander. Ignored when `commander` is null. */
   readonly commanderPrinting?: PrintingRef
+}
+
+export interface SetQuickGameLobbyAiDeckMessage {
+  readonly type: 'setQuickGameLobbyAiDeck'
+  readonly aiDeckList: Record<string, number>
 }
 
 export interface SetQuickGameLobbyReadyMessage {
@@ -2178,6 +2186,7 @@ export function createCreateQuickGameLobbyMessage(
   setCode?: string,
   isPublic?: boolean,
   format?: DeckFormat,
+  aiDeckList?: Record<string, number>,
 ): CreateQuickGameLobbyMessage {
   return {
     type: 'createQuickGameLobby',
@@ -2185,6 +2194,7 @@ export function createCreateQuickGameLobbyMessage(
     ...(setCode ? { setCode } : {}),
     ...(isPublic ? { isPublic } : {}),
     ...(format ? { format } : {}),
+    ...(aiDeckList ? { aiDeckList } : {}),
   }
 }
 export function createJoinQuickGameLobbyMessage(lobbyId: string): JoinQuickGameLobbyMessage {
@@ -2218,6 +2228,10 @@ export function createSetQuickGameLobbyPublicMessage(isPublic: boolean): SetQuic
 }
 export function createSetQuickGameLobbyFormatMessage(format: DeckFormat | null): SetQuickGameLobbyFormatMessage {
   return { type: 'setQuickGameLobbyFormat', format }
+}
+
+export function createSetQuickGameLobbyAiDeckMessage(aiDeckList: Record<string, number>): SetQuickGameLobbyAiDeckMessage {
+  return { type: 'setQuickGameLobbyAiDeck', aiDeckList }
 }
 
 export function isQuickGameLobbyStateMessage(msg: ServerMessage): msg is QuickGameLobbyStateMessage {

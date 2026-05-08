@@ -70,6 +70,7 @@ class QuickGameLobbyHandler(
             is ClientMessage.JoinQuickGameLobby -> handleJoin(session, message)
             is ClientMessage.LeaveQuickGameLobby -> handleLeave(session)
             is ClientMessage.SubmitQuickGameLobbyDeck -> handleSubmitDeck(session, message)
+            is ClientMessage.SetQuickGameLobbyAiDeck -> handleSetAiDeck(session, message)
             is ClientMessage.SetQuickGameLobbyReady -> handleSetReady(session, message)
             is ClientMessage.SetQuickGameLobbySetCode -> handleSetSetCode(session, message)
             is ClientMessage.SetQuickGameLobbyPublic -> handleSetPublic(session, message)
@@ -162,6 +163,7 @@ class QuickGameLobbyHandler(
         val lobby = QuickGameLobby(
             vsAi = message.vsAi,
             setCode = message.setCode,
+            aiDeckList = message.aiDeckList,
             // AI lobbies are single-player — never publicly listed.
             isPublic = message.isPublic && !message.vsAi,
             format = message.format
@@ -176,8 +178,8 @@ class QuickGameLobbyHandler(
                 playerName = "AI Opponent",
                 isAi = true,
                 ready = true,
-                // AI deck is generated at game start by AiGameManager, so an empty map is fine.
-                deckList = emptyMap()
+                // Use the specified AI deck list, or empty map for random deck
+                deckList = message.aiDeckList ?: emptyMap()
             )
         }
         lobbyRepository.save(lobby)
@@ -428,10 +430,12 @@ class QuickGameLobbyHandler(
         gameRepository.save(gameSession)
 
         if (lobby.vsAi) {
-            // AI is added by AiGameManager (it generates its own random sealed deck for the chosen set).
+            // Get AI deck list from lobby if specified, otherwise use random deck
+            val aiDeckList = lobby.aiDeckList
             aiGameManager.createAiOpponent(
                 gameSession = gameSession,
                 setCode = aiSetCode,
+                deckList = aiDeckList,
                 onActionReady = { id, action -> gamePlayHandler.handleAiAction(gameSession, id, action) },
                 onMulliganKeep = { id -> gamePlayHandler.handleAiMulliganKeep(gameSession, id) },
                 onMulliganTake = { id -> gamePlayHandler.handleAiMulliganTake(gameSession, id) },
@@ -559,5 +563,49 @@ class QuickGameLobbyHandler(
             deckLabel = label,
             setCode = setCode
         )
+    }
+
+    private fun handleSetAiDeck(session: WebSocketSession, message: ClientMessage.SetQuickGameLobbyAiDeck) {
+        val playerSession = sessionRegistry.getPlayerSession(session.id) ?: run {
+            sender.sendError(session, ErrorCode.NOT_CONNECTED, "Not connected")
+            return
+        }
+
+        val lobby = lobbyRepository.findContainingPlayer(playerSession.playerId) ?: run {
+            sender.sendError(session, ErrorCode.INVALID_ACTION, "Not in a lobby")
+            return
+        }
+
+        // Only allow AI deck changes in AI lobbies
+        if (!lobby.vsAi) {
+            sender.sendError(session, ErrorCode.INVALID_ACTION, "AI deck can only be set in AI lobbies")
+            return
+        }
+
+        // Only the host (first non-AI player) can set the AI deck
+        val host = lobby.players.find { !it.isAi } ?: run {
+            sender.sendError(session, ErrorCode.INVALID_ACTION, "No host found")
+            return
+        }
+
+        if (host.playerId != playerSession.playerId) {
+            sender.sendError(session, ErrorCode.INVALID_ACTION, "Only the host can set the AI deck")
+            return
+        }
+
+        // Update the AI deck in the lobby
+        lobby.aiDeckList = message.aiDeckList
+        lobbyRepository.save(lobby)
+
+        // Update the AI player's deck list
+        val aiPlayer = lobby.players.find { it.isAi } ?: run {
+            sender.sendError(session, ErrorCode.INVALID_ACTION, "No AI player found")
+            return
+        }
+
+        aiPlayer.deckList = message.aiDeckList
+
+        // Broadcast the updated lobby state
+        broadcastState(lobby)
     }
 }
