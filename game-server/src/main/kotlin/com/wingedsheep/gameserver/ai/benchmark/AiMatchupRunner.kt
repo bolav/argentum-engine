@@ -734,18 +734,25 @@ private fun drawLosses(perf: DeckPerformance): Int =
 
 fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
     println()
-    println("=== TOURNAMENT RESULTS ===")
-    println("Total games: ${summary.totalGames}")
-    println("Total matchups: ${summary.totalMatchups}")
-    println("Wall time: ${summary.wallTime}")
-    println()
+    print(buildTournamentSummaryText(summary))
     
-    // Sort decks by win rate
+    // Save detailed results to files
+    saveTournamentResults(summary, outputDir)
+}
+
+private fun buildTournamentSummaryText(summary: TournamentSummary): String {
+    val report = StringBuilder()
     val sortedPerformances = summary.deckPerformances.values.sortedByDescending { it.winRate }
+
+    report.appendLine("=== TOURNAMENT RESULTS ===")
+    report.appendLine("Total games: ${summary.totalGames}")
+    report.appendLine("Total matchups: ${summary.totalMatchups}")
+    report.appendLine("Wall time: ${summary.wallTime}")
+    report.appendLine()
     
-    println("=== DECK RANKINGS ===")
-    println("Rank | Deck            | Win Rate | Total W-L-D | Play Rate | Draw Rate")
-    println("-----|-----------------|----------|-------------|-----------|-----------")
+    report.appendLine("=== DECK RANKINGS ===")
+    report.appendLine("Rank | Deck            | Win Rate | Total W-L-D | Play Rate | Draw Rate")
+    report.appendLine("-----|-----------------|----------|-------------|-----------|-----------")
     
     sortedPerformances.forEachIndexed { index, perf ->
         val rank = index + 1
@@ -755,16 +762,16 @@ fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
         val playRate = String.format("%.1f%%", perf.playWinRate).padStart(9)
         val drawRate = String.format("%.1f%%", perf.drawWinRate).padStart(9)
         
-        println("$rank".padStart(4) + " | $deckName | $winRate | $record | $playRate | $drawRate")
+        report.appendLine("$rank".padStart(4) + " | $deckName | $winRate | $record | $playRate | $drawRate")
     }
     
-    println()
-    println("=== DETAILED MATCHUP RESULTS ===")
+    report.appendLine()
+    report.appendLine("=== DETAILED MATCHUP RESULTS ===")
     sortedPerformances.forEach { perf ->
-        println("${perf.deckName}:")
-        println("  Overall: ${perf.totalWins}-${perf.totalLosses}-${perf.totalDraws} (${String.format("%.1f", perf.winRate)}%)")
-        println("  On play: ${perf.playWins}-${playLosses(perf)}-${perf.playDraws} (${String.format("%.1f", perf.playWinRate)}%)")
-        println("  On draw: ${perf.drawWins}-${drawLosses(perf)}-${perf.drawDraws} (${String.format("%.1f", perf.drawWinRate)}%)")
+        report.appendLine("${perf.deckName}:")
+        report.appendLine("  Overall: ${perf.totalWins}-${perf.totalLosses}-${perf.totalDraws} (${String.format("%.1f", perf.winRate)}%)")
+        report.appendLine("  On play: ${perf.playWins}-${playLosses(perf)}-${perf.playDraws} (${String.format("%.1f", perf.playWinRate)}%)")
+        report.appendLine("  On draw: ${perf.drawWins}-${drawLosses(perf)}-${perf.drawDraws} (${String.format("%.1f", perf.drawWinRate)}%)")
         
         perf.matchupResults.values.sortedBy { it.deck2 }.forEach { matchup ->
             val opponent = if (matchup.deck1 == perf.deckName) matchup.deck2 else matchup.deck1
@@ -779,34 +786,35 @@ fun displayTournamentResults(summary: TournamentSummary, outputDir: File) {
             val playLosses = playGames - playWins - playDraws
             val drawLosses = drawGames - drawWins - drawDraws
             
-            println("    vs $opponent: $wins-$losses-${matchup.draws} | Play: $playWins-$playLosses-$playDraws | Draw: $drawWins-$drawLosses-$drawDraws")
+            report.appendLine("    vs $opponent: $wins-$losses-${matchup.draws} | Play: $playWins-$playLosses-$playDraws | Draw: $drawWins-$drawLosses-$drawDraws")
         }
-        println()
+        report.appendLine()
     }
 
-    println("=== CARD IMPORTANCE ===")
-    println("Score is win-rate lift in percentage points, weighted by how often the card was seen.")
+    report.appendLine("=== CARD IMPORTANCE ===")
+    report.appendLine("Score is win-rate lift in percentage points, weighted by how often the card was seen.")
     sortedPerformances.forEach { perf ->
         val importance = summary.cardImportances[perf.deckName].orEmpty()
         if (importance.isNotEmpty()) {
-            println("${perf.deckName}:")
-            println("  Top cards:")
+            report.appendLine("${perf.deckName}:")
+            report.appendLine("  Top cards:")
             importance.take(5).forEach { card ->
-                println("    ${formatCardImportance(card)}")
+                report.appendLine("    ${formatCardImportance(card)}")
             }
-            println("  Bottom cards:")
+            report.appendLine("  Bottom cards:")
             importance.takeLast(5).asReversed().forEach { card ->
-                println("    ${formatCardImportance(card)}")
+                report.appendLine("    ${formatCardImportance(card)}")
             }
         }
     }
-    println()
-    
-    // Save detailed results to files
-    saveTournamentResults(summary, outputDir)
+    report.appendLine()
+    return report.toString()
 }
 
 fun saveTournamentResults(summary: TournamentSummary, outputDir: File) {
+    val summaryFile = File(outputDir, "tournament-summary.txt")
+    summaryFile.writeText(buildTournamentSummaryText(summary))
+
     // Save CSV with detailed results
     val csvFile = File(outputDir, "tournament-results.csv")
     csvFile.writeText("deck,total_wins,total_losses,total_draws,win_rate,play_games,play_wins,play_losses,play_draws,play_win_rate,draw_games,draw_wins,draw_losses,draw_draws,draw_win_rate\n")
@@ -853,6 +861,7 @@ fun saveTournamentResults(summary: TournamentSummary, outputDir: File) {
     }
     
     println("Detailed results saved to:")
+    println("  - ${summaryFile.absolutePath}")
     println("  - ${csvFile.absolutePath}")
     println("  - ${matrixFile.absolutePath}")
     println("  - ${importanceFile.absolutePath}")
