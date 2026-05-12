@@ -16,5 +16,6 @@ data class AiConfig(
     val effectiveDeckbuildingModel: String get() = deckbuildingModel.ifBlank { model }
     val effectiveApiKey: String get() = apiKey.ifBlank { openRouterApiKey }
     val isEngineMode: Boolean get() = mode.equals("engine", ignoreCase = true)
-    val isLlmMode: Boolean get() = !isEngineMode
+    val isMageZeroMode: Boolean get() = mode.equals("magezero", ignoreCase = true)
+    val isLlmMode: Boolean get() = !isEngineMode && !isMageZeroMode
 }

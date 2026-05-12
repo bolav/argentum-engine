@@ -4,6 +4,7 @@ import com.wingedsheep.ai.AiPlayerController
 import com.wingedsheep.ai.engine.EngineAiPlayerController
 import com.wingedsheep.ai.llm.LlmAiPlayerController
 import com.wingedsheep.ai.llm.LlmClient
+import com.wingedsheep.ai.magezero.MageZeroAiPlayerController
 import com.wingedsheep.gameserver.config.GameProperties
 import com.wingedsheep.ai.engine.SealedDeckGenerator
 import com.wingedsheep.gameserver.session.GameSession
@@ -108,20 +109,23 @@ class AiGameManager(
         val aiConfig = ai.toAiConfig().let { cfg ->
             if (modelOverride != null) cfg.copy(model = modelOverride, mode = "llm") else cfg
         }
-        return if (aiConfig.isEngineMode) {
-            EngineAiPlayerController(
-                cardRegistry = cardRegistry,
+        val engineFallback = EngineAiPlayerController(
+            cardRegistry = cardRegistry,
+            playerId = aiPlayerId,
+            gameStateProvider = { gameSession?.getStateSnapshot() }
+        )
+        return when {
+            aiConfig.isEngineMode -> engineFallback
+            aiConfig.isMageZeroMode -> MageZeroAiPlayerController(
+                agentUrl = gameProperties.magezero.agentUrl,
                 playerId = aiPlayerId,
-                gameStateProvider = { gameSession?.getStateSnapshot() }
+                fallback = engineFallback,
+                timeoutSeconds = gameProperties.magezero.timeoutSeconds,
             )
-        } else {
-            val engineFallback = EngineAiPlayerController(
-                cardRegistry = cardRegistry,
-                playerId = aiPlayerId,
-                gameStateProvider = { gameSession?.getStateSnapshot() }
-            )
-            val llmClient = LlmClient(aiConfig)
-            LlmAiPlayerController(aiConfig, llmClient, aiPlayerId, fallback = engineFallback)
+            else -> {
+                val llmClient = LlmClient(aiConfig)
+                LlmAiPlayerController(aiConfig, llmClient, aiPlayerId, fallback = engineFallback)
+            }
         }
     }
 

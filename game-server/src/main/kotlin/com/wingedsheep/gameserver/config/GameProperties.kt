@@ -8,6 +8,7 @@ data class GameProperties(
     val sets: SetsProperties = SetsProperties(),
     val admin: AdminProperties = AdminProperties(),
     val ai: AiProperties = AiProperties(),
+    val magezero: MageZeroProperties = MageZeroProperties(),
     val debugMode: Boolean = false
 )
 
@@ -71,5 +72,15 @@ data class AiProperties(
     val isEngineMode: Boolean get() = mode.equals("engine", ignoreCase = true)
 
     /** Whether we're using the LLM-based AI. */
-    val isLlmMode: Boolean get() = !isEngineMode
+    val isLlmMode: Boolean get() = mode.equals("llm", ignoreCase = true)
+
+    /** Whether we're using the MageZero agent service. */
+    val isMageZeroMode: Boolean get() = mode.equals("magezero", ignoreCase = true)
 }
+
+data class MageZeroProperties(
+    /** URL of the Python agent service (agent_service.py). */
+    val agentUrl: String = "http://127.0.0.1:5005",
+    /** Timeout in seconds for requests to the agent service. */
+    val timeoutSeconds: Long = 10L,
+)

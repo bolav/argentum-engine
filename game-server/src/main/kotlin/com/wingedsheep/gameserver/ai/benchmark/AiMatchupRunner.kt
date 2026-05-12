@@ -11,6 +11,7 @@ import com.wingedsheep.engine.state.components.identity.LifeTotalComponent
 import com.wingedsheep.ai.ActionResponse
 import com.wingedsheep.ai.AiPlayerController
 import com.wingedsheep.ai.engine.EngineAiPlayerController
+import com.wingedsheep.ai.magezero.MageZeroAiPlayerController
 import com.wingedsheep.engine.view.ClientEventTransformer
 import com.wingedsheep.engine.view.ClientStateTransformer
 import com.wingedsheep.engine.view.LegalActionEnricher
@@ -425,6 +426,9 @@ fun runTournament(args: Array<String>) {
     val gamesPerMatchup = args.find { it.startsWith("--games=") }?.substringAfter("=")?.toIntOrNull() ?: 50
     val saveReplays = args.contains("--save-replays")
     val maxTurns = args.find { it.startsWith("--max-turns=") }?.substringAfter("=")?.toIntOrNull() ?: 50
+    val magezeroUrl = args.find { it.startsWith("--magezero-url=") }?.substringAfter("=")
+    val magezeroDecks = args.find { it.startsWith("--magezero-decks=") }?.substringAfter("=")
+        ?.split(",")?.map { it.trim() }?.toSet() ?: emptySet()
     
     println("=== TOURNAMENT MODE ===")
     println("Deck pool file: $deckPoolFile")
@@ -489,8 +493,17 @@ fun runTournament(args: Array<String>) {
     println("Output directory: ${outputDir.absolutePath}")
     println()
 
+    if (magezeroUrl != null && magezeroDecks.isNotEmpty()) {
+        println("MageZero agent: $magezeroUrl")
+        println("MageZero decks: ${magezeroDecks.joinToString()}")
+        println()
+    }
+
     // Run tournament
-    val tournamentSummary = runTournamentMatches(tournamentDecks, gamesPerMatchup, maxTurns, saveReplays, outputDir, registry)
+    val tournamentSummary = runTournamentMatches(
+        tournamentDecks, gamesPerMatchup, maxTurns, saveReplays, outputDir, registry,
+        magezeroUrl = magezeroUrl, magezeroDecks = magezeroDecks
+    )
     
     // Display results
     displayTournamentResults(tournamentSummary, outputDir)
@@ -572,13 +585,25 @@ fun loadTournamentDeckPool(deckPoolFile: String, registry: CardRegistry): List<T
 }
 
 fun runTournamentMatches(
-    decks: List<TournamentDeck>, 
-    gamesPerMatchup: Int, 
-    maxTurns: Int, 
+    decks: List<TournamentDeck>,
+    gamesPerMatchup: Int,
+    maxTurns: Int,
     saveReplays: Boolean,
     outputDir: File,
-    registry: CardRegistry
+    registry: CardRegistry,
+    magezeroUrl: String? = null,
+    magezeroDecks: Set<String> = emptySet(),
 ): TournamentSummary {
+    fun makeController(
+        deckName: String,
+        playerId: com.wingedsheep.sdk.model.EntityId,
+        stateProvider: () -> com.wingedsheep.engine.state.GameState?,
+    ): AiPlayerController {
+        val engine = EngineAiPlayerController(registry, playerId, stateProvider)
+        return if (magezeroUrl != null && deckName in magezeroDecks) {
+            MageZeroAiPlayerController(agentUrl = magezeroUrl, playerId = playerId, fallback = engine)
+        } else engine
+    }
     val deckPerformances = mutableMapOf<String, DeckPerformance>()
     val cardObservations = mutableMapOf<String, MutableMap<String, CardObservation>>()
     val allMatchups = mutableListOf<TournamentMatchupResult>()
@@ -614,8 +639,9 @@ fun runTournamentMatches(
                 println("Matchup: ${deck1.name} vs ${deck2.name}")
                 
                 val matchupResult = runMatchup(
-                    deck1, deck2, gamesPerMatchup, maxTurns, saveReplays, 
-                    outputDir, registry, totalGames + 1, cardObservations
+                    deck1, deck2, gamesPerMatchup, maxTurns, saveReplays,
+                    outputDir, registry, totalGames + 1, cardObservations,
+                    controllerFactory = { deckName, pid, stateProvider -> makeController(deckName, pid, stateProvider) }
                 )
                 
                 allMatchups.add(matchupResult)
@@ -625,6 +651,11 @@ fun runTournamentMatches(
                 updateDeckPerformances(deckPerformances, matchupResult)
                 
                 println("  Result: ${deck1.name} ${matchupResult.deck1Wins} - ${matchupResult.deck2Wins} ${deck2.name} (${matchupResult.draws} draws)")
+                println()
+
+                // Write intermediate results after each matchup
+                saveIntermediateTournamentResults(deckPerformances, totalGames, allMatchups.size, outputDir)
+                println("  [Intermediate results saved to ${outputDir.absolutePath}]")
                 println()
             }
         }
@@ -669,7 +700,8 @@ fun runMatchup(
     outputDir: File,
     registry: CardRegistry,
     startGameId: Int,
-    cardObservations: MutableMap<String, MutableMap<String, CardObservation>>? = null
+    cardObservations: MutableMap<String, MutableMap<String, CardObservation>>? = null,
+    controllerFactory: ((String, com.wingedsheep.sdk.model.EntityId, () -> com.wingedsheep.engine.state.GameState?) -> AiPlayerController)? = null,
 ): TournamentMatchupResult {
     var deck1Wins = 0
     var deck2Wins = 0
@@ -689,9 +721,13 @@ fun runMatchup(
         
         // If deck1 goes first, play deck1 as P1, otherwise play deck2 as P1
         val result = if (deck1GoesFirst) {
-            playGame(registry, deck1.deck, deck2.deck, actualGameId, maxTurns, "P1")
+            playGame(registry, deck1.deck, deck2.deck, actualGameId, maxTurns, "P1",
+                p1ControllerFactory = controllerFactory?.let { f -> { pid, sp -> f(deck1.name, pid, sp) } },
+                p2ControllerFactory = controllerFactory?.let { f -> { pid, sp -> f(deck2.name, pid, sp) } })
         } else {
-            playGame(registry, deck2.deck, deck1.deck, actualGameId, maxTurns, "P1")
+            playGame(registry, deck2.deck, deck1.deck, actualGameId, maxTurns, "P1",
+                p1ControllerFactory = controllerFactory?.let { f -> { pid, sp -> f(deck2.name, pid, sp) } },
+                p2ControllerFactory = controllerFactory?.let { f -> { pid, sp -> f(deck1.name, pid, sp) } })
         }
 
         val deck1SeenCards = if (deck1GoesFirst) result.p1SeenCards else result.p2SeenCards
@@ -883,6 +919,34 @@ private fun buildTournamentSummaryText(summary: TournamentSummary): String {
     return report.toString()
 }
 
+/**
+ * Writes intermediate standings after each matchup completes, so results are
+ * available even if the tournament is interrupted.
+ */
+fun saveIntermediateTournamentResults(
+    deckPerformances: Map<String, DeckPerformance>,
+    totalGames: Int,
+    completedMatchups: Int,
+    outputDir: File,
+) {
+    // Recalculate win rates from current totals
+    deckPerformances.values.forEach { perf ->
+        val games = perf.totalWins + perf.totalLosses + perf.totalDraws
+        perf.winRate      = if (games > 0) perf.totalWins.toDouble() / games * 100 else 0.0
+        perf.playWinRate  = if (perf.playGames > 0) perf.playWins.toDouble() / perf.playGames * 100 else 0.0
+        perf.drawWinRate  = if (perf.drawGames > 0) perf.drawWins.toDouble() / perf.drawGames * 100 else 0.0
+    }
+
+    val partial = TournamentSummary(
+        deckPerformances = deckPerformances,
+        cardImportances  = emptyMap(),   // not yet computed mid-tournament
+        totalGames       = totalGames,
+        totalMatchups    = completedMatchups,
+        wallTime         = kotlin.time.Duration.ZERO,
+    )
+    saveTournamentResults(partial, outputDir)
+}
+
 fun saveTournamentResults(summary: TournamentSummary, outputDir: File) {
     val summaryFile = File(outputDir, "tournament-summary.txt")
     summaryFile.writeText(buildTournamentSummaryText(summary))
@@ -1002,7 +1066,9 @@ fun playGame(
     registry: CardRegistry,
     deck1: Deck, deck2: Deck,
     gameId: Int, maxTurns: Int,
-    firstPlayerLabel: String
+    firstPlayerLabel: String,
+    p1ControllerFactory: ((com.wingedsheep.sdk.model.EntityId, () -> com.wingedsheep.engine.state.GameState?) -> AiPlayerController)? = null,
+    p2ControllerFactory: ((com.wingedsheep.sdk.model.EntityId, () -> com.wingedsheep.engine.state.GameState?) -> AiPlayerController)? = null,
 ): GameRunResult {
     val log = StringBuilder()
     log.appendLine("=== Game $gameId ===")
@@ -1027,9 +1093,9 @@ fun playGame(
     val p2 = initResult.state.turnOrder[1]
     var state = initResult.state
 
-    // Create AI controllers
-    val p1Controller = EngineAiPlayerController(registry, p1) { state }
-    val p2Controller = EngineAiPlayerController(registry, p2) { state }
+    // Create AI controllers — pass { state } so fallback engine AI sees live game state
+    val p1Controller = p1ControllerFactory?.invoke(p1) { state } ?: EngineAiPlayerController(registry, p1) { state }
+    val p2Controller = p2ControllerFactory?.invoke(p2) { state } ?: EngineAiPlayerController(registry, p2) { state }
     fun controllerFor(id: EntityId) = if (id == p1) p1Controller else p2Controller
     fun label(id: EntityId) = if (id == p1) "P1" else "P2"
     fun cardName(cardId: EntityId): String? = state.getEntity(cardId)?.get<CardComponent>()?.name
