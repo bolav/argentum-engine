@@ -96,3 +96,8 @@ Detailed DSL reference: [`docs/card-definition-guide.md`](docs/card-definition-g
 | [`data-contracts.md`](docs/data-contracts.md) | Client/server JSON payloads |
 | [`web-client-architecture.md`](docs/web-client-architecture.md) | Frontend architecture, WebSocket API |
 | [`e2e-test-patterns.md`](docs/e2e-test-patterns.md) | Playwright fixtures, GamePage helpers, scenario config |
+| [`magezero-training.md`](docs/magezero-training.md) | MageZero-compatible state encoding, action heads, training pipeline |
+| [`external-agent-api.md`](docs/external-agent-api.md) | HTTP + WebSocket API for external bots and LLMs to play games |
+| [`plans/ai-full-capabilities.md`](docs/plans/ai-full-capabilities.md) | Implementation plan: training, leaderboard, tournaments, agent API |
+| [`plans/magezero-first-run.md`](docs/plans/magezero-first-run.md) | Step-by-step plan to get MageZero training for the first time |
+| [`plans/gym-server-encoded-observations.md`](docs/plans/gym-server-encoded-observations.md) | Phase 2 plan: server-side encoding for production self-play throughput |

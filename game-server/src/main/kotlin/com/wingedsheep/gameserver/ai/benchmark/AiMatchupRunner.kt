@@ -313,8 +313,8 @@ fun runSingleMatchup(args: Array<String>) {
 
     // Setup output directory
     val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-    val deck1Short = deck1Name ?: deck1File?.substringBeforeLast(".") ?: "unknown"
-    val deck2Short = deck2Name ?: deck2File?.substringBeforeLast(".") ?: "unknown"
+    val deck1Short = deck1Name ?: deck1File?.let { File(it).nameWithoutExtension } ?: "unknown"
+    val deck2Short = deck2Name ?: deck2File?.let { File(it).nameWithoutExtension } ?: "unknown"
     val outputDir = File("ai-matchup-${deck1Short}-vs-${deck2Short}-$timestamp")
     outputDir.mkdirs()
     
@@ -531,7 +531,7 @@ fun loadTournamentDeckPool(deckPoolFile: String, registry: CardRegistry): List<T
         poolConfig.textFiles?.forEach { filename ->
             try {
                 val deck = createDeckFromTextFile(filename, registry)
-                decks.add(TournamentDeck(filename.substringBeforeLast("."), deck, "file"))
+                decks.add(TournamentDeck(File(filename).nameWithoutExtension, deck, "file"))
             } catch (e: Exception) {
                 println("WARNING: Failed to load text deck '$filename': ${e.message}")
             }
@@ -560,7 +560,7 @@ fun loadTournamentDeckPool(deckPoolFile: String, registry: CardRegistry): List<T
                 // Try as text file
                 try {
                     val deck = createDeckFromTextFile(trimmed, registry)
-                    decks.add(TournamentDeck(trimmed.substringBeforeLast("."), deck, "file"))
+                    decks.add(TournamentDeck(File(trimmed).nameWithoutExtension, deck, "file"))
                 } catch (e: Exception) {
                     println("WARNING: Could not load '$trimmed' as JSON deck or text file")
                 }
