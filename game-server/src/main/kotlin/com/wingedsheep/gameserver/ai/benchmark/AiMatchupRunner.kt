@@ -18,16 +18,33 @@ import com.wingedsheep.engine.view.LegalActionInfo
 import com.wingedsheep.engine.legalactions.LegalActionEnumerator
 import com.wingedsheep.engine.mechanics.mana.ManaSolver
 import com.wingedsheep.mtg.sets.definitions.blb.BloomburrowSet
+import com.wingedsheep.mtg.sets.definitions.blc.BloomburrowCommanderSet
 import com.wingedsheep.mtg.sets.definitions.bro.BrothersWarSet
+import com.wingedsheep.mtg.sets.definitions.dft.AetherdriftSet
 import com.wingedsheep.mtg.sets.definitions.dom.DominariaSet
+import com.wingedsheep.mtg.sets.definitions.dmu.DominariaUnitedSet
 import com.wingedsheep.mtg.sets.definitions.dsk.DuskmournSet
 import com.wingedsheep.mtg.sets.definitions.ecl.LorwynEclipsedSet
 import com.wingedsheep.mtg.sets.definitions.eoe.EdgeOfEternitiesSet
 import com.wingedsheep.mtg.sets.definitions.fdn.FoundationsSet
 import com.wingedsheep.mtg.sets.definitions.fin.FinalFantasySet
+import com.wingedsheep.mtg.sets.definitions.inr.InnistradRemasteredSet
+import com.wingedsheep.mtg.sets.definitions.inv.InvasionSet
+import com.wingedsheep.mtg.sets.definitions.ktk.KhansOfTarkirSet
+import com.wingedsheep.mtg.sets.definitions.lci.LostCavernsOfIxalanSet
+import com.wingedsheep.mtg.sets.definitions.lgn.LegionsSet
+import com.wingedsheep.mtg.sets.definitions.mid.InnistradMidnightHuntSet
 import com.wingedsheep.mtg.sets.definitions.mkm.MurdersAtKarlovManorSet
+import com.wingedsheep.mtg.sets.definitions.mom.MarchOfTheMachineSet
+import com.wingedsheep.mtg.sets.definitions.one.PhyrexiaAllWillBeOneSet
+import com.wingedsheep.mtg.sets.definitions.ons.OnslaughtSet
 import com.wingedsheep.mtg.sets.definitions.otj.OutlawsOfThunderJunctionSet
+import com.wingedsheep.mtg.sets.definitions.por.PortalSet
+import com.wingedsheep.mtg.sets.definitions.scg.ScourgeSet
 import com.wingedsheep.mtg.sets.definitions.spm.SpiderManSet
+import com.wingedsheep.mtg.sets.definitions.tdm.TarkirDragonstormSet
+import com.wingedsheep.mtg.sets.definitions.tla.AvatarTheLastAirbenderSet
+import com.wingedsheep.mtg.sets.definitions.vow.InnistradCrimsonVowSet
 import com.wingedsheep.mtg.sets.definitions.woe.WildsOfEldrainSet
 import com.wingedsheep.sdk.model.CardDefinition
 import com.wingedsheep.sdk.model.Deck
@@ -211,18 +228,35 @@ fun runSingleMatchup(args: Array<String>) {
 
     // Setup card registry with all available sets
     val allCards = mutableListOf<CardDefinition>().apply {
+        addAll(AetherdriftSet.cards)
+        addAll(AvatarTheLastAirbenderSet.cards)
         addAll(BloomburrowSet.cards)
         addAll(BloomburrowSet.basicLands)
+        addAll(BloomburrowCommanderSet.cards)
         addAll(BrothersWarSet.cards)
         addAll(DominariaSet.cards)
+        addAll(DominariaUnitedSet.cards)
         addAll(DuskmournSet.cards)
-        addAll(LorwynEclipsedSet.cards)
         addAll(EdgeOfEternitiesSet.cards)
-        addAll(FoundationsSet.cards)
         addAll(FinalFantasySet.cards)
+        addAll(FoundationsSet.cards)
+        addAll(InnistradCrimsonVowSet.cards)
+        addAll(InnistradMidnightHuntSet.cards)
+        addAll(InnistradRemasteredSet.cards)
+        addAll(InvasionSet.cards)
+        addAll(KhansOfTarkirSet.cards)
+        addAll(LegionsSet.cards)
+        addAll(LorwynEclipsedSet.cards)
+        addAll(LostCavernsOfIxalanSet.cards)
+        addAll(MarchOfTheMachineSet.cards)
         addAll(MurdersAtKarlovManorSet.cards)
+        addAll(OnslaughtSet.cards)
         addAll(OutlawsOfThunderJunctionSet.cards)
+        addAll(PhyrexiaAllWillBeOneSet.cards)
+        addAll(PortalSet.cards)
+        addAll(ScourgeSet.cards)
         addAll(SpiderManSet.cards)
+        addAll(TarkirDragonstormSet.cards)
         addAll(WildsOfEldrainSet.cards)
         // Add more sets as needed
     }
@@ -401,18 +435,35 @@ fun runTournament(args: Array<String>) {
 
     // Setup card registry
     val allCards = mutableListOf<CardDefinition>().apply {
+        addAll(AetherdriftSet.cards)
+        addAll(AvatarTheLastAirbenderSet.cards)
         addAll(BloomburrowSet.cards)
         addAll(BloomburrowSet.basicLands)
+        addAll(BloomburrowCommanderSet.cards)
         addAll(BrothersWarSet.cards)
         addAll(DominariaSet.cards)
+        addAll(DominariaUnitedSet.cards)
         addAll(DuskmournSet.cards)
-        addAll(LorwynEclipsedSet.cards)
         addAll(EdgeOfEternitiesSet.cards)
-        addAll(FoundationsSet.cards)
         addAll(FinalFantasySet.cards)
+        addAll(FoundationsSet.cards)
+        addAll(InnistradCrimsonVowSet.cards)
+        addAll(InnistradMidnightHuntSet.cards)
+        addAll(InnistradRemasteredSet.cards)
+        addAll(InvasionSet.cards)
+        addAll(KhansOfTarkirSet.cards)
+        addAll(LegionsSet.cards)
+        addAll(LorwynEclipsedSet.cards)
+        addAll(LostCavernsOfIxalanSet.cards)
+        addAll(MarchOfTheMachineSet.cards)
         addAll(MurdersAtKarlovManorSet.cards)
+        addAll(OnslaughtSet.cards)
         addAll(OutlawsOfThunderJunctionSet.cards)
+        addAll(PhyrexiaAllWillBeOneSet.cards)
+        addAll(PortalSet.cards)
+        addAll(ScourgeSet.cards)
         addAll(SpiderManSet.cards)
+        addAll(TarkirDragonstormSet.cards)
         addAll(WildsOfEldrainSet.cards)
     }
     val registry = CardRegistry().apply { register(allCards) }
