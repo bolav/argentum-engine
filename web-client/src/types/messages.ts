@@ -1590,14 +1590,14 @@ export function createCreateGameMessage(
   vsAi?: boolean,
   setCode?: string,
   cardEntries?: readonly DeckEntry[],
-, aiDeckList?: Record<string, number>): CreateGameMessage {
+  aiDeckList?: Record<string, number>): CreateGameMessage {
   const msg: CreateGameMessage = {
     type: 'createGame',
     deckList,
     ...(vsAi ? { vsAi } : {}),
     ...(setCode ? { setCode } : {}),
     ...(cardEntries && cardEntries.length > 0 ? { cardEntries } : {}),
- , ...(aiDeckList ? { aiDeckList } : {}) }
+    ...(aiDeckList ? { aiDeckList } : {}) }
   return msg
 }
 

@@ -18,6 +18,7 @@ import com.wingedsheep.engine.view.LegalActionInfo
 import com.wingedsheep.engine.legalactions.LegalActionEnumerator
 import com.wingedsheep.engine.mechanics.mana.ManaSolver
 import com.wingedsheep.mtg.sets.definitions.blb.BloomburrowSet
+import com.wingedsheep.mtg.sets.definitions.bro.BrothersWarSet
 import com.wingedsheep.mtg.sets.definitions.dom.DominariaSet
 import com.wingedsheep.mtg.sets.definitions.dsk.DuskmournSet
 import com.wingedsheep.mtg.sets.definitions.ecl.LorwynEclipsedSet
@@ -212,6 +213,7 @@ fun runSingleMatchup(args: Array<String>) {
     val allCards = mutableListOf<CardDefinition>().apply {
         addAll(BloomburrowSet.cards)
         addAll(BloomburrowSet.basicLands)
+        addAll(BrothersWarSet.cards)
         addAll(DominariaSet.cards)
         addAll(DuskmournSet.cards)
         addAll(LorwynEclipsedSet.cards)
@@ -401,6 +403,7 @@ fun runTournament(args: Array<String>) {
     val allCards = mutableListOf<CardDefinition>().apply {
         addAll(BloomburrowSet.cards)
         addAll(BloomburrowSet.basicLands)
+        addAll(BrothersWarSet.cards)
         addAll(DominariaSet.cards)
         addAll(DuskmournSet.cards)
         addAll(LorwynEclipsedSet.cards)
