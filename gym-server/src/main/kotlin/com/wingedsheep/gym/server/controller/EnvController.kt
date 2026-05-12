@@ -9,6 +9,7 @@ import com.wingedsheep.gym.service.SnapshotHandle
 import com.wingedsheep.gym.service.StepRequest
 import com.wingedsheep.gym.server.dto.CreateEnvResponse
 import com.wingedsheep.gym.server.dto.DisposeBody
+import com.wingedsheep.gym.server.dto.HeuristicStepResponse
 import com.wingedsheep.gym.server.dto.RestoreBody
 import com.wingedsheep.gym.server.dto.StepBatchItem
 import com.wingedsheep.gym.server.dto.StepBatchResult
@@ -258,6 +259,24 @@ class EnvController(
     // =========================================================================
     // Fork / snapshot / restore
     // =========================================================================
+
+    @Operation(
+        summary = "Run heuristic AI for the acting player and advance",
+        description = """
+            The engine heuristic AI picks an action for the current acting player and
+            steps the env. Returns the observation before and after the step plus the
+            chosen action ID. Use this to drive an opponent player without MCTS cost.
+        """
+    )
+    @PostMapping("/{id}/heuristic-step")
+    fun heuristicStep(@PathVariable id: String): HeuristicStepResponse {
+        val result = multiEnvService.heuristicStep(EnvId(id))
+        return HeuristicStepResponse(
+            observation = result.observation,
+            heuristicActionId = result.heuristicActionId,
+            nextObservation = result.nextObservation,
+        )
+    }
 
     @Operation(
         summary = "Fork an env N times",

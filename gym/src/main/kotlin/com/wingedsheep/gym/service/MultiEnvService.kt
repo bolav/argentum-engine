@@ -1,5 +1,6 @@
 package com.wingedsheep.gym.service
 
+import com.wingedsheep.ai.engine.AIPlayer
 import com.wingedsheep.engine.limited.BoosterGenerator
 import com.wingedsheep.engine.core.DecisionResponse
 import com.wingedsheep.engine.core.GameConfig
@@ -78,6 +79,7 @@ class MultiEnvService(
         )
 
         val env = GameEnvironment.create(cardRegistry)
+        env.maxTurns = config.maxTurns
         env.reset(gameConfig)
 
         val envId = EnvId.generate()
@@ -106,6 +108,7 @@ class MultiEnvService(
             useHandSmoother = config.useHandSmoother,
             startingPlayerIndex = config.startingPlayerIndex
         )
+        oldEntry.environment.maxTurns = config.maxTurns
         oldEntry.environment.reset(gameConfig)
         val newEntry = EnvEntry(oldEntry.environment, config.perspectivePlayerIndex, config.revealAll)
         envs[envId] = newEntry
@@ -221,6 +224,48 @@ class MultiEnvService(
     }
 
     // =========================================================================
+    // Heuristic step
+    // =========================================================================
+
+    /**
+     * Run the engine heuristic AI for the current acting player and advance
+     * the env by one action. Returns the observation before the step, the
+     * chosen action ID, and the observation after.
+     *
+     * Used by Python trainers to drive an opponent player without MCTS cost.
+     */
+    fun heuristicStep(envId: EnvId): HeuristicStepResult {
+        val entry = requireEntry(envId)
+        val env = entry.environment
+        val preObs = buildObservation(envId, entry)
+
+        val actingPlayer = env.state.pendingDecision?.playerId ?: env.state.priorityPlayerId
+            ?: return HeuristicStepResult(preObs.observation, -1, preObs.observation)
+
+        val legalActions = env.legalActions()
+        if (legalActions.isEmpty()) {
+            return HeuristicStepResult(preObs.observation, -1, preObs.observation)
+        }
+
+        val ai = AIPlayer.create(cardRegistry, actingPlayer)
+
+        // Handle pending decisions directly
+        if (env.state.pendingDecision != null) {
+            val response = ai.respondToDecision(env.state, env.state.pendingDecision!!)
+            env.step(SubmitDecision(actingPlayer, response))
+            val postObs = buildObservation(envId, entry)
+            return HeuristicStepResult(preObs.observation, -1, postObs.observation)
+        }
+
+        val chosen = ai.chooseFrom(env.state, legalActions)
+        val actionId = preObs.registry.resolveActionIdFor(chosen.action) ?: 0
+        env.step(chosen.action)
+        val postObs = buildObservation(envId, entry)
+
+        return HeuristicStepResult(preObs.observation, actionId, postObs.observation)
+    }
+
+    // =========================================================================
     // Internals
     // =========================================================================
 
@@ -259,4 +304,11 @@ class MultiEnvService(
 data class CreatedEnv(
     val envId: EnvId,
     val observation: ObservationResult
+)
+
+/** Result of [MultiEnvService.heuristicStep]. */
+data class HeuristicStepResult(
+    val observation: com.wingedsheep.gym.contract.TrainingObservation,
+    val heuristicActionId: Int,
+    val nextObservation: com.wingedsheep.gym.contract.TrainingObservation,
 )

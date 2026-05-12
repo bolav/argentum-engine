@@ -107,12 +107,15 @@ class GameEnvironment private constructor(
     var stepCount: Int = 0
         private set
 
+    /** Maximum turns before declaring a draw. Set from [EnvConfig.maxTurns]. */
+    var maxTurns: Int? = null
+
     // =========================================================================
     // Queries
     // =========================================================================
 
-    /** True if the game has ended (someone won, drew, or decked out). */
-    val isTerminal: Boolean get() = state.gameOver
+    /** True if the game has ended (someone won, drew, decked out, or hit the turn limit). */
+    val isTerminal: Boolean get() = state.gameOver || (maxTurns != null && state.turnNumber > maxTurns!!)
 
     /** The winner's entity ID, or null if the game is ongoing or a draw. */
     val winnerId: EntityId? get() = state.winnerId

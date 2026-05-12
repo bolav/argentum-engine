@@ -54,3 +54,14 @@ data class ErrorResponse(
     val code: String,
     val message: String
 )
+
+/**
+ * Response for `POST /envs/{id}/heuristic-step`.
+ * The engine heuristic AI picks an action for the current acting player.
+ */
+@Serializable
+data class HeuristicStepResponse(
+    val observation: TrainingObservation,
+    val heuristicActionId: Int,
+    val nextObservation: TrainingObservation,
+)

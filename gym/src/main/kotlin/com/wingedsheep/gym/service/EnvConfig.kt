@@ -42,7 +42,14 @@ data class EnvConfig(
      * If `true`, opponent hand and libraries are revealed — debug only,
      * must never be enabled in production self-play.
      */
-    val revealAll: Boolean = false
+    val revealAll: Boolean = false,
+
+    /**
+     * Maximum number of turns before the game is declared a draw.
+     * `null` = no limit (not recommended for training — games can loop indefinitely).
+     * Standard training value: 50.
+     */
+    val maxTurns: Int? = 50,
 ) {
     init {
         require(players.size >= 2) { "Need at least 2 players" }

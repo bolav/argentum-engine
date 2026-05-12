@@ -30,6 +30,10 @@ class ActionRegistry private constructor(
         return ResolvedAction.Unknown
     }
 
+    /** Reverse-lookup: find the action ID for a given [GameAction]. Null if not found. */
+    fun resolveActionIdFor(action: GameAction): Int? =
+        legalActionsById.entries.firstOrNull { it.value.action == action }?.key
+
     /** All legal-action entries in ID order. Empty when mid-decision. */
     val legalActions: List<Pair<Int, LegalAction>>
         get() = legalActionsById.entries.sortedBy { it.key }.map { it.key to it.value }
