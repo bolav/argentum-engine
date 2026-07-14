@@ -150,13 +150,15 @@ class SacrificeExecutor(
         var newState = state
         val events = mutableListOf<GameEvent>()
 
-        // Capture P/T/subtype snapshots BEFORE the zone change (CR 608.2h / 113.7a — last
-        // known information) so a follow-up sibling effect — e.g. Serendib Djinn's "if you
-        // sacrifice an Island this way, ~ deals 3 damage to you" — can read the sacrificed
-        // permanent's subtypes via
-        // [Conditions.SacrificedHadSubtype] or [DynamicAmount.EntityProperty(Sacrificed, ...)].
+        // Capture P/T/subtype/token-ness snapshots BEFORE the zone change (CR 608.2h / 113.7a —
+        // last known information) so a follow-up sibling effect can read the sacrificed
+        // permanent's characteristics: e.g. Serendib Djinn's "if you sacrifice an Island this way,
+        // ~ deals 3 damage to you" (subtypes via [Conditions.SacrificedHadSubtype] /
+        // [DynamicAmount.EntityProperty(Sacrificed, ...)]), or Exploit's `EmitExploitedEventEffect`
+        // reading `wasToken` for Skull Skaab's "exploits a nontoken creature". The GameState overload
+        // is used so token-ness (a [TokenComponent] fact, not a projected value) is recorded too.
         val snapshots = if (permanentIds.isNotEmpty()) {
-            captureEntitySnapshots(permanentIds, newState.projectedState)
+            captureEntitySnapshots(permanentIds, newState)
         } else {
             emptyList()
         }

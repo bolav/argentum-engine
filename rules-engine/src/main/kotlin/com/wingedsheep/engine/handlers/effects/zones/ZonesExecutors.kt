@@ -23,6 +23,7 @@ class ZonesExecutors(
         SacrificeExecutor(),
         SacrificeSelfExecutor(),
         SacrificeTargetExecutor(),
+        EmitExploitedEventExecutor(),
         ReturnCreaturesPutInGraveyardThisTurnExecutor(),
         ReturnSameNamedFromGraveyardExecutor(),
         ReturnSelfToBattlefieldAttachedExecutor(cardRegistry),

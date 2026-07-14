@@ -1196,6 +1196,34 @@ sealed interface DynamicAmount : TextReplaceable<DynamicAmount> {
     }
 
     /**
+     * Total mana value of the cards exiled to craft the source permanent.
+     *
+     * The mana-value sibling of [CraftedMaterialsTotalPower] — same
+     * `CraftedFromExiledComponent` read, summing printed mana value instead of power. Exact-one
+     * crafts read it as the single material's mana value (Jadeheart Attendant: "you gain life
+     * equal to the mana value of the exiled card used to craft it"). Zero when not crafted.
+     */
+    @SerialName("CraftedMaterialsTotalManaValue")
+    @Serializable
+    data object CraftedMaterialsTotalManaValue : DynamicAmount {
+        override val description: String = "the total mana value of the exiled cards used to craft it"
+    }
+
+    /**
+     * Number of colors (0–5) among the cards exiled to craft the source permanent.
+     *
+     * The color-counting sibling of [CraftedMaterialsTotalPower] — same
+     * `CraftedFromExiledComponent` read, counting distinct printed colors across all exiled
+     * materials (Sunbird Effigy's P/T CDA and its "add one mana of each of those colors"
+     * mana ability). Zero when not crafted or all materials are colorless.
+     */
+    @SerialName("CraftedMaterialsColorCount")
+    @Serializable
+    data object CraftedMaterialsColorCount : DynamicAmount {
+        override val description: String = "the number of colors among the exiled cards used to craft it"
+    }
+
+    /**
      * Number of distinct creatures that crewed (CR 702.122) or saddled (CR 702.171) the source
      * permanent this turn.
      *

@@ -534,6 +534,13 @@ class TargetValidator {
             return "Target must be on the battlefield"
         }
 
+        // "Another target …" — the source itself is not a legal target. Mirrors the same guard
+        // in validateGraveyardTarget; enumeration also honors excludeSelf, but direct submission
+        // must be rejected here too (Braided Net's "another target nonland permanent").
+        if (filter.excludeSelf && sourceId != null && target.entityId == sourceId) {
+            return "Target must be another permanent"
+        }
+
         // Use unified filter with projection (face-down creatures have CMC 0 per Rule 708.2)
         val projected = state.projectedState
         val predicateContext = PredicateContext(controllerId = casterId, sourceId = sourceId, xValue = xValue)

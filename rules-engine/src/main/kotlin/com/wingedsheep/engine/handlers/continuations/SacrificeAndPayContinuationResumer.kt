@@ -55,11 +55,13 @@ class SacrificeAndPayContinuationResumer(
         val events = mutableListOf<GameEvent>()
 
         // Capture characteristics BEFORE the zone change so sibling effects can read the
-        // sacrificed permanents' supertypes / subtypes / controllers (Rise of the Witch-king
-        // "if you sacrificed a creature this way…" rider).
+        // sacrificed permanents' supertypes / subtypes / controllers / token-ness (Rise of the
+        // Witch-king "if you sacrificed a creature this way…" rider; Exploit's `EmitExploitedEventEffect`
+        // reading `wasToken` for Skull Skaab's "exploits a nontoken creature"). The GameState overload
+        // records token-ness ([TokenComponent], not a projected value) too.
         val snapshots = if (selectedPermanents.isNotEmpty()) {
             com.wingedsheep.engine.state.components.stack.captureEntitySnapshots(
-                selectedPermanents, newState.projectedState
+                selectedPermanents, newState
             )
         } else {
             emptyList()

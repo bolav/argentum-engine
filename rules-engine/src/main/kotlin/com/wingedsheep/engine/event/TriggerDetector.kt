@@ -1408,7 +1408,65 @@ class TriggerDetector(
             detectSelfCastTriggers(state, event, triggers)
         }
 
+        // Handle a self-exploiting creature's own exploit watcher (CR 603.10a look-back). When an
+        // exploiter sacrifices *itself* it is in the graveyard by the time the ExploitedEvent fires,
+        // so the battlefield index scan above misses its own "whenever a creature you control
+        // exploits ..." trigger (Skull Skaab). The exploiter was on the battlefield as its exploit
+        // ability resolved, so the sacrifice look-back requires that watcher to still fire.
+        if (event is com.wingedsheep.engine.core.ExploitedEvent) {
+            detectExploitedSelfSacrificeTriggers(state, event, triggers)
+        }
+
         return triggers
+    }
+
+    /**
+     * Detect an exploit watcher borne by an exploiter that sacrificed *itself* and so is no longer on
+     * the battlefield when its [com.wingedsheep.engine.core.ExploitedEvent] fires.
+     *
+     * CR 603.10a: abilities that trigger when a player sacrifices a permanent "look back in time" — the
+     * game uses the appearance of objects immediately before the sacrifice. A creature with exploit is on
+     * the battlefield as its own exploit ability resolves (that resolution is what performs the sacrifice),
+     * so its own "whenever a creature you control exploits a[nontoken] creature" watcher (Skull Skaab)
+     * must still fire even when the exploiter sacrifices itself. This matches the DTK Silumgar Butcher
+     * ruling. The main index scan in [detectTriggersForEvent] only covers battlefield permanents, so a
+     * self-exploiting Skull Skaab — now in the graveyard — would otherwise miss its own trigger.
+     *
+     * Guards:
+     *  - Fires only when the exploiter has actually left the battlefield, so this never double-fires with
+     *    the battlefield index scan (which handles the exploiter-still-present case, e.g. exploiting
+     *    another creature).
+     *  - Skips [TriggerBinding.OTHER] — "whenever *another* creature you control exploits" never fires for
+     *    the exploiter observing its own exploit.
+     */
+    private fun detectExploitedSelfSacrificeTriggers(
+        state: GameState,
+        event: com.wingedsheep.engine.core.ExploitedEvent,
+        triggers: MutableList<PendingTrigger>
+    ) {
+        val exploiterId = event.exploiterId
+        // Still on the battlefield → already covered by the main index scan; avoid a double fire.
+        if (exploiterId in state.getBattlefield()) return
+
+        val container = state.getEntity(exploiterId) ?: return
+        val cardComponent = container.get<CardComponent>() ?: return
+        val controllerId = event.exploiterControllerId
+
+        val abilities = abilityResolver.getTriggeredAbilities(exploiterId, cardComponent.cardDefinitionId, state)
+        for (ability in abilities) {
+            if (ability.trigger !is EventPattern.ExploitedEvent) continue
+            if (ability.binding == TriggerBinding.OTHER) continue
+            if (!matcher.matchesTrigger(ability.trigger, ability.binding, event, exploiterId, controllerId, state)) continue
+            triggers.add(
+                PendingTrigger(
+                    ability = ability,
+                    sourceId = exploiterId,
+                    sourceName = cardComponent.name,
+                    controllerId = controllerId,
+                    triggerContext = TriggerContext.fromEvent(event)
+                )
+            )
+        }
     }
 
     /**

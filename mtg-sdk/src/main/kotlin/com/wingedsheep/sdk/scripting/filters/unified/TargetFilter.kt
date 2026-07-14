@@ -151,6 +151,9 @@ data class TargetFilter(
         /** Target nonland permanent */
         val NonlandPermanent = TargetFilter(GameObjectFilter.Companion.NonlandPermanent)
 
+        /** Another target nonland permanent (excluding the source) */
+        val OtherNonlandPermanent = TargetFilter(GameObjectFilter.Companion.NonlandPermanent, excludeSelf = true)
+
         /** Target permanent you control */
         val PermanentYouControl = TargetFilter(GameObjectFilter.Companion.Permanent.youControl())
 
@@ -383,6 +386,15 @@ data class TargetFilter(
 
     /** Must be attacking */
     fun attacking() = copy(baseFilter = baseFilter.attacking())
+
+    /** Spell on the stack cast from [zone] (reads `SpellOnStackComponent.castFromZone`). */
+    fun castFromZone(zone: Zone) = copy(baseFilter = baseFilter.castFromZone(zone))
+
+    /**
+     * Spell on the stack that was *not* cast from [zone] — Wash Away's "counter target spell that
+     * wasn't cast from its owner's hand" (`Zone.HAND`).
+     */
+    fun notCastFromZone(zone: Zone) = copy(baseFilter = baseFilter.notCastFromZone(zone))
 
     /** Must have been dealt damage this turn ("...that was dealt damage this turn"). */
     fun dealtDamageThisTurn() = copy(baseFilter = baseFilter.dealtDamageThisTurn())

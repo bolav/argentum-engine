@@ -2,7 +2,7 @@
 
 **Set Size:** 286 booster cards (excluding basic lands and tokens)
 **Release Date:** November 17, 2023
-**Implemented:** 227 / 286
+**Implemented:** 232 / 286
 - [x] Abrade
 - [x] Abuelo's Awakening
 - [x] Abuelo, Ancestral Echo
@@ -30,7 +30,7 @@
 - [ ] Bloodthorn Flail
 - [x] Bonehoard Dracosaur
 - [x] Brackish Blunder
-- [ ] Braided Net
+- [x] Braided Net
 - [ ] Brass's Tunnel-Grinder
 - [x] Brazen Blademaster
 - [ ] Breeches, Eager Pillager
@@ -79,7 +79,7 @@
 - [x] Didact Echo
 - [x] Digsite Conservator
 - [x] Dinotomaton
-- [ ] Dire Flail
+- [x] Dire Flail
 - [x] Disruptor Wanderglyph
 - [x] Disturbed Slumber
 - [ ] Dowsing Device
@@ -136,7 +136,7 @@
 - [x] Ironpaw Aspirant
 - [x] Itzquinth, Firstborn of Gishath
 - [x] Ixalli's Lorekeeper
-- [ ] Jade Seedstones
+- [x] Jade Seedstones
 - [x] Jadelight Spelunker
 - [x] Join the Dead
 - [x] Kaslem's Stonetree
@@ -240,7 +240,7 @@
 - [x] Staunch Crewmate
 - [x] Stinging Cave Crawler
 - [x] Subterranean Schooner
-- [ ] Sunbird Standard
+- [x] Sunbird Standard
 - [ ] Sunfire Torch
 - [x] Sunken Citadel
 - [x] Sunshot Militia
@@ -275,7 +275,7 @@
 - [x] Unlucky Drop
 - [ ] Unstable Glyphbridge
 - [x] Vanguard of the Rose
-- [ ] Visage of Dread
+- [x] Visage of Dread
 - [x] Vito's Inquisitor
 - [x] Vito, Fanatic of Aclazotz
 - [x] Volatile Fault

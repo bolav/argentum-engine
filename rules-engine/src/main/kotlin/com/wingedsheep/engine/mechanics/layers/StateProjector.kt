@@ -575,6 +575,15 @@ class StateProjector(
                     }
             }
 
+            // "for as long as it remains tapped" (Braided Net): keep only affected entities that
+            // are currently tapped. Per-frame gate; the latch-off is in EndedDurationExpiryCheck
+            // so untapping then re-tapping can't resurrect it (CR 611.2b).
+            if (floating.duration is Duration.WhileAffectedTapped) {
+                validAffectedEntities = validAffectedEntities.filterTo(LinkedHashSet()) { id ->
+                    state.getEntity(id)?.has<TappedComponent>() == true
+                }
+            }
+
             // The per-affected-entity power gate for
             // [Duration.WhileSourceTappedAndAffectedPowerAtMostSource] is deferred to a
             // post-Layer-7 fix-up in [project] — we can't compare projected power here

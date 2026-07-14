@@ -292,12 +292,17 @@ data class RetainUnspentManaEffect(
 }
 
 /**
- * Add one mana of each color found among permanents matching a filter.
+ * Add one mana of each color found among a set of game objects.
  * "{T}: For each color among permanents you control, add one mana of that color."
  *
- * At resolution, the executor examines the matching permanents, takes the union of their
- * colors (using projected state), and adds one mana of each color in that set (0–5 mana
- * total). No player choice — all colors present produce one mana each simultaneously.
+ * At resolution, the executor takes the union of the objects' colors and adds one mana of
+ * each color in that set (0–5 mana total). No player choice — all colors present produce
+ * one mana each simultaneously. Which objects contribute colors is picked by [colorSource]:
+ *  - [ManaColorSource.MatchingPermanents] (default): battlefield permanents matching
+ *    [filter], colors read from projected state so recolor effects are honored.
+ *  - [ManaColorSource.CraftedMaterials]: the exiled cards recorded on the source's
+ *    `CraftedFromExiledComponent` (Sunbird Effigy's "for each color among the exiled cards
+ *    used to craft this creature"); printed colors, [filter] is ignored.
  *
  * @property filter The filter to match permanents whose colors determine which manas are produced
  */
@@ -305,10 +310,26 @@ data class RetainUnspentManaEffect(
 @Serializable
 data class AddOneManaOfEachColorAmongEffect(
     val filter: GameObjectFilter,
-    val restriction: ManaRestriction? = null
+    val restriction: ManaRestriction? = null,
+    val colorSource: ManaColorSource = ManaColorSource.MatchingPermanents
 ) : Effect {
     override val description: String = buildString {
-        append("For each color among matching permanents, add one mana of that color")
+        when (colorSource) {
+            ManaColorSource.MatchingPermanents ->
+                append("For each color among matching permanents, add one mana of that color")
+            ManaColorSource.CraftedMaterials ->
+                append("For each color among the exiled cards used to craft this permanent, add one mana of that color")
+        }
         if (restriction != null) append(". ${restriction.description}")
     }
+}
+
+/** Which objects contribute colors to [AddOneManaOfEachColorAmongEffect]. */
+@Serializable
+enum class ManaColorSource {
+    /** Battlefield permanents matching the effect's filter (projected colors). */
+    MatchingPermanents,
+
+    /** The exiled cards used to craft the source (`CraftedFromExiledComponent`, printed colors). */
+    CraftedMaterials,
 }

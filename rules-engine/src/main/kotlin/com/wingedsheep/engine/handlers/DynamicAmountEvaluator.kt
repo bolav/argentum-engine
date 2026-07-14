@@ -555,6 +555,29 @@ class DynamicAmountEvaluator(
                 }
             }
 
+            is DynamicAmount.CraftedMaterialsTotalManaValue -> {
+                val sourceId = context.sourceId
+                if (sourceId == null) 0 else {
+                    state.getEntity(sourceId)
+                        ?.get<com.wingedsheep.engine.state.components.battlefield.CraftedFromExiledComponent>()
+                        ?.exiledIds
+                        ?.sumOf { exiledId -> state.getEntity(exiledId)?.get<CardComponent>()?.manaValue ?: 0 }
+                        ?: 0
+                }
+            }
+
+            is DynamicAmount.CraftedMaterialsColorCount -> {
+                val sourceId = context.sourceId
+                if (sourceId == null) 0 else {
+                    state.getEntity(sourceId)
+                        ?.get<com.wingedsheep.engine.state.components.battlefield.CraftedFromExiledComponent>()
+                        ?.exiledIds
+                        ?.flatMap { exiledId -> state.getEntity(exiledId)?.get<CardComponent>()?.colors ?: emptySet() }
+                        ?.toSet()?.size
+                        ?: 0
+                }
+            }
+
             is DynamicAmount.CreaturesThatCrewedOrSaddledThisTurn -> {
                 val sourceId = context.sourceId
                 if (sourceId == null) 0 else {

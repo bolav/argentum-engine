@@ -673,6 +673,18 @@ data class GameObjectFilter(
     )
 
     /**
+     * Must BE the effect's source permanent itself — the [GameObjectFilter] counterpart of
+     * `GroupFilter`'s `Scope.Self`. Scopes a filter-carrying static ability to the very
+     * permanent that carries it: granting
+     * [PreventActivatedAbilities][com.wingedsheep.sdk.scripting.PreventActivatedAbilities]
+     * with this filter locks the *holder's own* activated abilities (Braided Net's
+     * "Its activated abilities can't be activated for as long as it remains tapped").
+     */
+    fun sourceItself() = copy(
+        statePredicates = statePredicates + StatePredicate.IsSource
+    )
+
+    /**
      * Must BE an Aura/Equipment attached to the effect's source permanent — the mirror of
      * [attachedToBySource]. Source-relative — scopes a static ability on the *host* to its own
      * attachments, e.g. Cloud, Midgar Mercenary's "an Equipment attached to it".
@@ -831,6 +843,22 @@ data class GameObjectFilter(
      */
     fun castForWarp() = copy(
         statePredicates = statePredicates + StatePredicate.WasCastForWarp
+    )
+
+    /**
+     * Must be a spell on the stack cast from [zone] — reads the engine's stamped
+     * `SpellOnStackComponent.castFromZone`. See [StatePredicate.WasCastFromZone].
+     */
+    fun castFromZone(zone: com.wingedsheep.sdk.core.Zone) = copy(
+        statePredicates = statePredicates + StatePredicate.WasCastFromZone(zone)
+    )
+
+    /**
+     * Must be a spell on the stack that was *not* cast from [zone]. Backs Wash Away's
+     * "counter target spell that wasn't cast from its owner's hand" (`Zone.HAND`).
+     */
+    fun notCastFromZone(zone: com.wingedsheep.sdk.core.Zone) = copy(
+        statePredicates = statePredicates + StatePredicate.Not(StatePredicate.WasCastFromZone(zone))
     )
 
     // =============================================================================

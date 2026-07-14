@@ -1198,6 +1198,10 @@ is PermanentsSacrificedEvent -> {
             is RingTemptedEvent,
             is ScriedEvent,
             is SurveiledEvent,
+            // Internal signal that fires "exploits a creature" watcher triggers (Skull Skaab); the
+            // sacrifice is already surfaced by PermanentsSacrificedEvent and the payoff by the
+            // exploiting creature's own triggered/reflexive ability, so no separate client event.
+            is ExploitedEvent,
             is BendPerformedEvent,
             is ManifestedDreadEvent,
             is LibrarySearchedEvent,

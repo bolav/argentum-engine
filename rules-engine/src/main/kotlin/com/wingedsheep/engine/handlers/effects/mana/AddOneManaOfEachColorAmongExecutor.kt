@@ -8,6 +8,7 @@ import com.wingedsheep.engine.state.GameState
 import com.wingedsheep.engine.state.components.player.ManaPoolComponent
 import com.wingedsheep.sdk.core.Color
 import com.wingedsheep.sdk.scripting.effects.AddOneManaOfEachColorAmongEffect
+import com.wingedsheep.sdk.scripting.effects.ManaColorSource
 import kotlin.reflect.KClass
 
 /**
@@ -28,14 +29,28 @@ class AddOneManaOfEachColorAmongExecutor : EffectExecutor<AddOneManaOfEachColorA
         effect: AddOneManaOfEachColorAmongEffect,
         context: EffectContext
     ): EffectResult {
-        val projected = state.projectedState
-        val matched = BattlefieldFilterUtils.findMatchingOnBattlefield(state, effect.filter, context)
-
         val availableColors = mutableSetOf<Color>()
-        for (entityId in matched) {
-            val colors = projected.getColors(entityId)
-            for (colorName in colors) {
-                Color.entries.find { it.name == colorName }?.let { availableColors.add(it) }
+        when (effect.colorSource) {
+            ManaColorSource.MatchingPermanents -> {
+                val projected = state.projectedState
+                val matched = BattlefieldFilterUtils.findMatchingOnBattlefield(state, effect.filter, context)
+                for (entityId in matched) {
+                    val colors = projected.getColors(entityId)
+                    for (colorName in colors) {
+                        Color.entries.find { it.name == colorName }?.let { availableColors.add(it) }
+                    }
+                }
+            }
+            ManaColorSource.CraftedMaterials -> {
+                // Printed colors of the exile-zone materials — off-battlefield cards are never
+                // projected, so base CardComponent state is the correct read.
+                val materials = context.sourceId?.let { state.getEntity(it) }
+                    ?.get<com.wingedsheep.engine.state.components.battlefield.CraftedFromExiledComponent>()
+                materials?.exiledIds?.forEach { exiledId ->
+                    state.getEntity(exiledId)
+                        ?.get<com.wingedsheep.engine.state.components.identity.CardComponent>()
+                        ?.colors?.let(availableColors::addAll)
+                }
             }
         }
 

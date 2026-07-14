@@ -144,6 +144,12 @@ object Targets {
     val NonlandPermanent: TargetRequirement = TargetPermanent(filter = TargetFilter.NonlandPermanent)
 
     /**
+     * Another target nonland permanent (excludes the source).
+     * Braided Net's "Tap another target nonland permanent."
+     */
+    val OtherNonlandPermanent: TargetRequirement = TargetPermanent(filter = TargetFilter.OtherNonlandPermanent)
+
+    /**
      * Target artifact.
      */
     val Artifact: TargetRequirement = TargetPermanent(filter = TargetFilter.Artifact)

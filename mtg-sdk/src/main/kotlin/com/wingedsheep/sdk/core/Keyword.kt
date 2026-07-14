@@ -2,6 +2,7 @@ package com.wingedsheep.sdk.core
 
 import kotlinx.serialization.Serializable
 import com.wingedsheep.sdk.dsl.decayed
+import com.wingedsheep.sdk.dsl.exploit
 import com.wingedsheep.sdk.dsl.firebending
 import com.wingedsheep.sdk.dsl.impending
 import com.wingedsheep.sdk.dsl.mobilize
@@ -233,6 +234,24 @@ enum class Keyword(val displayName: String) {
      */
     FORETELL("Foretell"),
 
+    /**
+     * Cleave [cost] (CR 702.148, Innistrad: Crimson Vow). Two static abilities that function while
+     * a spell with cleave is on the stack (CR 702.148a): "You may cast this spell by paying [cost]
+     * rather than paying its mana cost" and "If this spell's cleave cost was paid, change its text
+     * by removing all text found within square brackets in the spell's rules text." The second
+     * ability is a text-changing effect (CR 702.148b / 612).
+     *
+     * Modelled as an alternative cost ([KeywordAbility.Cleave]) whose paid branch swaps the spell's
+     * effect and target requirements for a brackets-removed variant the card author supplies
+     * explicitly ([com.wingedsheep.sdk.model.CardScript.cleaveSpellEffect] /
+     * [com.wingedsheep.sdk.model.CardScript.cleaveTargetRequirements]) — a structural swap done at
+     * cast time, not a cosmetic text edit, so e.g. a delayed triggered ability inside brackets is
+     * never created at all (Alchemist's Gambit ruling). Cleave never changes mana value (CR 202.3b —
+     * mana value is always computed from the printed mana cost). Wired by the `cleave(cost) { }` DSL
+     * helper on [com.wingedsheep.sdk.dsl.CardBuilder].
+     */
+    CLEAVE("Cleave"),
+
     // ── Creature mechanics ────────────────────────────────
     OFFSPRING("Offspring"),
     PERSIST("Persist"),
@@ -285,6 +304,21 @@ enum class Keyword(val displayName: String) {
      * that sacrifices the source at the end-of-combat step.
      */
     DECAYED("Decayed"),
+
+    /**
+     * Exploit (CR 702.110, Dragons of Tarkir). A triggered ability plus a paired payoff:
+     * "When this creature enters, you may sacrifice a creature" (CR 702.110a). A creature
+     * with exploit "exploits a creature" when its controller sacrifices a creature as that
+     * ability resolves (CR 702.110b) — including sacrificing the exploiter itself.
+     *
+     * The keyword itself is display-only; the behavior is composed by the `exploit(onExploit)`
+     * DSL helper on [com.wingedsheep.sdk.dsl.CardBuilder] — an enters-the-battlefield
+     * [com.wingedsheep.sdk.scripting.effects.ReflexiveTriggerEffect] ("you may sacrifice a
+     * creature; when you do, …") whose reflexive emits an observable
+     * [com.wingedsheep.sdk.scripting.EventPattern.ExploitedEvent] (so external watchers like
+     * Skull Skaab can react) and then runs the optional self-payoff [onExploit].
+     */
+    EXPLOIT("Exploit"),
 
     // ── Damage modification ──────────────────────────────
     WITHER("Wither"),

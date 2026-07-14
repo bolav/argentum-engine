@@ -421,6 +421,10 @@ internal class AffectsFilterResolver {
         // contexts via PredicateEvaluator. Never match here.
         StatePredicate.IsAttachedToBySource -> false
         StatePredicate.IsAttachedToSource -> false
+        // Source-relative: "the source permanent itself" — for a group static projecting onto
+        // its own source, use GroupFilter's Scope.Self instead. Only meaningful in point-of-use
+        // checks (activation legality) via PredicateEvaluator. Never match here.
+        StatePredicate.IsSource -> false
         // Source-relative exile linkage (LinkedExileComponent on the effect source). Only
         // meaningful in target/gather-filter contexts via PredicateEvaluator; never match in
         // group-static projection.
@@ -480,6 +484,10 @@ internal class AffectsFilterResolver {
             container.has<com.wingedsheep.engine.state.components.identity.WarpExiledComponent>()
         StatePredicate.WasCastForWarp ->
             container.has<com.wingedsheep.engine.state.components.battlefield.WarpedComponent>()
+        // Stack-only: cast-origin zone reads SpellOnStackComponent, which battlefield permanents
+        // in group-static projection never carry. Only meaningful in target/counter contexts via
+        // PredicateEvaluator. Never match here.
+        is StatePredicate.WasCastFromZone -> false
         StatePredicate.HasGreatestPower -> hasGreatestPowerInProjection(state, entityId, container, projectedValues)
         StatePredicate.HasLeastPowerAmongAllCreatures -> hasLeastPowerAmongAllCreaturesInProjection(state, entityId, container, projectedValues)
         StatePredicate.HasLeastPower -> hasLeastPowerInProjection(state, entityId, container, projectedValues)

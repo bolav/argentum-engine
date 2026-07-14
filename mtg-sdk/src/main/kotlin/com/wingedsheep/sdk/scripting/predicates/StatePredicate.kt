@@ -507,6 +507,43 @@ sealed interface StatePredicate {
     }
 
     /**
+     * A spell on the stack whose cast-origin zone is [zone] — reads the
+     * `SpellOnStackComponent.castFromZone` the engine stamps when the spell is put on the stack
+     * (HAND for a normal cast; GRAVEYARD/EXILE/COMMAND for flashback/forage, plot/foretell,
+     * commander, …). Composes with [Not] for the common "*wasn't* cast from …" phrasing.
+     *
+     * Backs Wash Away's base (bracketed) restriction "counter target spell [that wasn't cast from
+     * its owner's hand]" as `Not(WasCastFromZone(Zone.HAND))`. A spell can only be cast from its
+     * own owner's hand (cards in a hand are owned by that hand's player, CR 108.3), so the
+     * owner-scoped wording collapses to the zone check.
+     */
+    @SerialName("WasCastFromZone")
+    @Serializable
+    data class WasCastFromZone(val zone: com.wingedsheep.sdk.core.Zone) : Entity {
+        override val description: String = "cast from ${zone.displayName}"
+    }
+
+    /**
+     * The candidate permanent IS the effect's source permanent itself. Source-relative:
+     * resolves against the source supplied in the evaluation context, and is false with no
+     * source context. This is the [GameObjectFilter][com.wingedsheep.sdk.scripting.GameObjectFilter]
+     * counterpart of `GroupFilter`'s `Scope.Self` — use it to scope a filter-carrying static
+     * ability to the very permanent that carries it ("this permanent's …" wordings).
+     *
+     * Backs the granted form of
+     * [PreventActivatedAbilities][com.wingedsheep.sdk.scripting.PreventActivatedAbilities]:
+     * a permanent granted `PreventActivatedAbilities(GameObjectFilter.Permanent.sourceItself())`
+     * has *its own* activated abilities locked (Braided Net's "Its activated abilities can't
+     * be activated for as long as it remains tapped"), because the activation-legality check
+     * evaluates the filter with the grant's holder as the source.
+     */
+    @SerialName("IsSource")
+    @Serializable
+    data object IsSource : Entity {
+        override val description: String = "this"
+    }
+
+    /**
      * The candidate permanent is the permanent the effect's source is attached to — i.e. the
      * creature/permanent enchanted or equipped by the source (read from the source's
      * `AttachedToComponent`). Source-relative: resolves against the source supplied in the

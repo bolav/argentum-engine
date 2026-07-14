@@ -1852,6 +1852,41 @@ sealed interface EventPattern : TextReplaceable<EventPattern> {
         }
     }
 
+    /**
+     * Whenever a creature exploits a creature (CR 702.110b) — a creature "exploits a creature"
+     * when the controller of its exploit ability sacrifices a creature as that ability resolves.
+     * Fires once per exploit (one reflexive resolution ⇒ at most one sacrifice ⇒ one event);
+     * declining the optional sacrifice produces no event.
+     *
+     * The *exploiter* identity is selected by the ability's [TriggerBinding] against the event's
+     * exploiter, exactly like other per-object triggers:
+     *  - [TriggerBinding.SELF] — "when **this** creature exploits a creature" (Stitched Assistant,
+     *    Fell Stinger). Note these cards bake their self-payoff into the exploit reflexive itself so
+     *    it survives self-sacrifice; the SELF-bound pattern exists for the general case.
+     *  - [TriggerBinding.ANY] — "whenever **a creature you control** exploits a creature" (Skull
+     *    Skaab); includes the source's own exploit.
+     *  - [TriggerBinding.OTHER] — "whenever **another** creature you control exploits a creature".
+     *
+     * [player] scopes the exploiter's *controller* (default [Player.You] = "a creature you control
+     * exploits …"). [requireNontokenExploited] gates on the sacrificed creature being a **nontoken**
+     * (Skull Skaab's "exploits a nontoken creature"). This is a boolean rather than a full
+     * [GameObjectFilter] because the exploited creature is gone by the time the event is observed —
+     * only its last-known token-ness is available (mirrors [RingTemptedEvent.requireBearerChosen]).
+     */
+    @SerialName("ExploitedEvent")
+    @Serializable
+    data class ExploitedEvent(
+        val player: Player = Player.You,
+        val requireNontokenExploited: Boolean = false
+    ) : EventPattern {
+        override val description: String = buildString {
+            val who = if (player == Player.You) "a creature you control" else "a creature"
+            append(who)
+            append(" exploits ")
+            append(if (requireNontokenExploited) "a nontoken creature" else "a creature")
+        }
+    }
+
     // =========================================================================
     // Combat Damage Batch Triggers
     // =========================================================================

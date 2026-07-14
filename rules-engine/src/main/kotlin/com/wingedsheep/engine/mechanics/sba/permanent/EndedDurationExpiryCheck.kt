@@ -37,6 +37,9 @@ import com.wingedsheep.sdk.scripting.Duration
  *   ends when the source leaves the battlefield or untaps. The power variant additionally drops
  *   any affected creature whose projected power exceeds the source's projected power.
  * - [Duration.WhileSourceOnBattlefield]: ends when the source leaves the battlefield.
+ * - [Duration.WhileAffectedTapped]: drops any affected object that is no longer tapped
+ *   (also enforced for duration-keyed grants in `grantedActivatedAbilities` /
+ *   `grantedStaticAbilities`, which have no floating-effect representation).
  * - [Duration.WhileControlledByController]: drops any affected object the effect's controller no
  *   longer controls.
  * - [Duration.WhileYouControlSource]: ends when the source leaves the battlefield OR its
@@ -56,11 +59,12 @@ class EndedDurationExpiryCheck : StateBasedActionCheck {
     override val order = SbaOrder.DURATION_EXPIRY
 
     override fun check(state: GameState): ExecutionResult {
-        // A counter-keyed granted ability (Ultima's granted "{T}: Add {C}", stored in
-        // grantedActivatedAbilities, not as a floating effect) must be pruned the moment its
-        // land loses the blight counter — otherwise a de-blighted land reverts its types but
-        // keeps the mana ability. This latch is one-way by nature: the grant is never re-added.
-        val prunedState = pruneCounterKeyedGrants(state)
+        // An affected-object-keyed grant (Ultima's counter-keyed "{T}: Add {C}" in
+        // grantedActivatedAbilities; Braided Net's tapped-keyed activation lock in
+        // grantedStaticAbilities) must be pruned the moment its condition fails — otherwise a
+        // de-blighted land keeps the mana ability / an untapped permanent stays locked. This
+        // latch is one-way by nature: the grant is never re-added.
+        val prunedState = pruneAffectedKeyedGrants(state)
 
         if (prunedState.floatingEffects.isEmpty()) {
             return if (prunedState === state) ExecutionResult.success(state)
@@ -169,28 +173,73 @@ class EndedDurationExpiryCheck : StateBasedActionCheck {
                 }
             }
 
+            Duration.WhileAffectedTapped -> {
+                // "for as long as it remains tapped" (Braided Net) — keep only affected entities
+                // that are still tapped (CR 611.2b). One-way: once dropped here, a later re-tap
+                // does not resurrect the effect. Entities that merely left the battlefield are
+                // kept and reaped by zone-change cleanup, matching the other per-affected gates.
+                all.filterTo(LinkedHashSet()) { id ->
+                    !state.getBattlefield().contains(id) ||
+                        state.getEntity(id)?.has<TappedComponent>() == true
+                }
+            }
+
             else -> all
         }
     }
 
     /**
-     * Drop any [Duration.WhileAffectedHasCounter] granted activated ability whose entity no longer
-     * carries the required counter (or has left the battlefield). Returns the same instance when
-     * nothing changed.
+     * Drop any affected-object-keyed grant whose "for as long as …" condition no longer holds
+     * (or whose entity has left the battlefield — a returning permanent is a new object):
+     *  - [Duration.WhileAffectedHasCounter] — the entity no longer carries the required counter
+     *    (Ultima's granted "{T}: Add {C}").
+     *  - [Duration.WhileAffectedTapped] — the entity is no longer tapped (Braided Net's granted
+     *    activation lock).
+     * Covers both [GameState.grantedActivatedAbilities] and [GameState.grantedStaticAbilities].
+     * The latch is one-way by nature: a pruned grant is never re-added. Returns the same
+     * instance when nothing changed.
      */
-    private fun pruneCounterKeyedGrants(state: GameState): GameState {
-        if (state.grantedActivatedAbilities.none { it.duration is Duration.WhileAffectedHasCounter }) {
-            return state
+    private fun pruneAffectedKeyedGrants(state: GameState): GameState {
+        var result = state
+        if (state.grantedActivatedAbilities.any { affectedGrantConditionFails(state, it.entityId, it.duration) }) {
+            result = result.copy(
+                grantedActivatedAbilities = state.grantedActivatedAbilities.filterNot {
+                    affectedGrantConditionFails(state, it.entityId, it.duration)
+                }
+            )
         }
-        val remaining = state.grantedActivatedAbilities.filter { grant ->
-            val duration = grant.duration
-            if (duration !is Duration.WhileAffectedHasCounter) return@filter true
-            if (!state.getBattlefield().contains(grant.entityId)) return@filter false
-            val counterType = CounterType.fromName(duration.counterType) ?: return@filter false
-            (state.getEntity(grant.entityId)?.get<CountersComponent>()?.getCount(counterType) ?: 0) > 0
+        if (state.grantedStaticAbilities.any { affectedGrantConditionFails(state, it.entityId, it.duration) }) {
+            result = result.copy(
+                grantedStaticAbilities = state.grantedStaticAbilities.filterNot {
+                    affectedGrantConditionFails(state, it.entityId, it.duration)
+                }
+            )
         }
-        return if (remaining.size == state.grantedActivatedAbilities.size) state
-        else state.copy(grantedActivatedAbilities = remaining)
+        return result
+    }
+
+    /**
+     * True when [duration] is an affected-object-keyed "for as long as …" duration whose
+     * condition no longer holds for [entityId]. False for every other duration (unconditional
+     * grants are never pruned here).
+     */
+    private fun affectedGrantConditionFails(
+        state: GameState,
+        entityId: EntityId,
+        duration: Duration
+    ): Boolean = when (duration) {
+        is Duration.WhileAffectedHasCounter -> {
+            if (!state.getBattlefield().contains(entityId)) true
+            else {
+                val counterType = CounterType.fromName(duration.counterType)
+                counterType == null ||
+                    (state.getEntity(entityId)?.get<CountersComponent>()?.getCount(counterType) ?: 0) <= 0
+            }
+        }
+        Duration.WhileAffectedTapped ->
+            !state.getBattlefield().contains(entityId) ||
+                state.getEntity(entityId)?.has<TappedComponent>() != true
+        else -> false
     }
 
     private fun sourceTapped(state: GameState, sourceId: EntityId?): Boolean =

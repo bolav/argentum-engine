@@ -1441,6 +1441,175 @@
     ]
 }
 
+// Braided Net
+{
+    "name": "Braided Net",
+    "manaCost": "{2}{U}",
+    "typeLine": "Artifact",
+    "oracleText": "This artifact enters with three net counters on it.\n{T}, Remove a net counter from this artifact: Tap another target nonland permanent. Its activated abilities can't be activated for as long as it remains tapped.\nCraft with artifact {1}{U}",
+    "keywords": [
+        "CRAFT"
+    ],
+    "script": {
+        "activatedAbilities": [
+            {
+                "id": "ability_1",
+                "cost": {
+                    "type": "CostComposite",
+                    "costs": [
+                        "CostTap",
+                        {
+                            "type": "CostRemoveCounterFromSelf",
+                            "counterType": "net"
+                        }
+                    ]
+                },
+                "effect": {
+                    "type": "Composite",
+                    "effects": [
+                        {
+                            "type": "TapUntap",
+                            "target": {
+                                "type": "BoundVariable",
+                                "name": "nonland permanent to tap"
+                            }
+                        },
+                        {
+                            "type": "GrantStaticAbility",
+                            "ability": {
+                                "type": "PreventActivatedAbilities",
+                                "filter": {
+                                    "cardPredicates": [
+                                        "IsPermanent"
+                                    ],
+                                    "statePredicates": [
+                                        "IsSource"
+                                    ]
+                                }
+                            },
+                            "target": {
+                                "type": "BoundVariable",
+                                "name": "nonland permanent to tap"
+                            },
+                            "duration": "WhileAffectedTapped"
+                        }
+                    ]
+                },
+                "targetRequirements": [
+                    {
+                        "type": "TargetObject",
+                        "filter": {
+                            "baseFilter": "nonland permanent",
+                            "excludeSelf": true
+                        },
+                        "id": "nonland permanent to tap"
+                    }
+                ],
+                "descriptionOverride": "{T}, Remove a net counter from this artifact: Tap another target nonland permanent. Its activated abilities can't be activated for as long as it remains tapped."
+            },
+            {
+                "id": "ability_2",
+                "cost": {
+                    "type": "CostComposite",
+                    "costs": [
+                        {
+                            "type": "CostAtomWrapper",
+                            "atom": {
+                                "type": "AtomMana",
+                                "cost": "{1}{U}"
+                            }
+                        },
+                        {
+                            "type": "CostCraft",
+                            "filter": "artifact",
+                            "maxCount": 1
+                        }
+                    ]
+                },
+                "effect": "ReturnSelfFromExileTransformed",
+                "timing": "SorcerySpeed",
+                "descriptionOverride": "Craft with artifact — {1}{U}"
+            }
+        ],
+        "replacementEffects": [
+            {
+                "type": "EntersWithCounters",
+                "counterType": {
+                    "type": "Named",
+                    "name": "net"
+                },
+                "count": 3,
+                "selfOnly": true
+            }
+        ]
+    },
+    "backFace": {
+        "name": "Braided Quipu",
+        "manaCost": "",
+        "typeLine": "Artifact",
+        "oracleText": "{3}{U}, {T}: Draw a card for each artifact you control, then put this artifact into its owner's library third from the top.",
+        "script": {
+            "activatedAbilities": [
+                {
+                    "id": "ability_3",
+                    "cost": {
+                        "type": "CostComposite",
+                        "costs": [
+                            {
+                                "type": "CostAtomWrapper",
+                                "atom": {
+                                    "type": "AtomMana",
+                                    "cost": "{3}{U}"
+                                }
+                            },
+                            "CostTap"
+                        ]
+                    },
+                    "effect": {
+                        "type": "Composite",
+                        "effects": [
+                            {
+                                "type": "DrawCards",
+                                "count": {
+                                    "type": "AggregateBattlefield",
+                                    "player": "You",
+                                    "filter": "artifact"
+                                }
+                            },
+                            {
+                                "type": "MoveToZone",
+                                "target": "Self",
+                                "destination": "Library",
+                                "positionFromTop": 2
+                            }
+                        ]
+                    },
+                    "descriptionOverride": "{3}{U}, {T}: Draw a card for each artifact you control, then put this artifact into its owner's library third from the top."
+                }
+            ]
+        },
+        "metadata": {
+            "collectorNumber": "47",
+            "rarity": "RARE",
+            "artist": "Diego Gisbert",
+            "flavorText": "The Oltec repurpose objects out of reverence rather than scarcity, believing them strengthened by the memory of each past function.",
+            "imageUri": "https://cards.scryfall.io/normal/back/6/8/68a6ede0-6d57-4e29-9e3b-3569ab7f0bcd.jpg?1782694573"
+        },
+        "colorIdentityOverride": [
+            "BLUE"
+        ]
+    },
+    "metadata": {
+        "collectorNumber": "47",
+        "rarity": "RARE",
+        "artist": "Diego Gisbert",
+        "imageUri": "https://cards.scryfall.io/normal/front/6/8/68a6ede0-6d57-4e29-9e3b-3569ab7f0bcd.jpg?1782694573"
+    },
+    "colorIdentityOverride": [
+        "BLUE"
+    ]
+}
+
 // Brazen Blademaster
 {
     "name": "Brazen Blademaster",
@@ -4114,6 +4283,210 @@
         "artist": "Zoltan Boros",
         "flavorText": "\"Oh, Saheeli would love you.\"\n—Huatli",
         "imageUri": "https://cards.scryfall.io/normal/front/9/d/9de1a93e-ec71-45fa-b0b8-2c21123e390c.jpg"
+    },
+    "colorIdentityOverride": [
+        "RED"
+    ]
+}
+
+// Dire Flail
+{
+    "name": "Dire Flail",
+    "manaCost": "{R}",
+    "typeLine": "Artifact — Equipment",
+    "oracleText": "Equipped creature gets +2/+0.\nEquip {1}\nCraft with artifact {3}{R}{R} ({3}{R}{R}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.)",
+    "keywords": [
+        "CRAFT"
+    ],
+    "script": {
+        "activatedAbilities": [
+            {
+                "id": "ability_1",
+                "cost": {
+                    "type": "CostAtomWrapper",
+                    "atom": {
+                        "type": "AtomMana",
+                        "cost": "{1}"
+                    }
+                },
+                "effect": {
+                    "type": "AttachEquipment",
+                    "target": {
+                        "type": "BoundVariable",
+                        "name": "creature you control"
+                    }
+                },
+                "targetRequirements": [
+                    {
+                        "type": "TargetObject",
+                        "filter": {
+                            "baseFilter": "creature ctrl:you"
+                        },
+                        "id": "creature you control"
+                    }
+                ],
+                "timing": "SorcerySpeed",
+                "isEquipAbility": true
+            },
+            {
+                "id": "ability_2",
+                "cost": {
+                    "type": "CostComposite",
+                    "costs": [
+                        {
+                            "type": "CostAtomWrapper",
+                            "atom": {
+                                "type": "AtomMana",
+                                "cost": "{3}{R}{R}"
+                            }
+                        },
+                        {
+                            "type": "CostCraft",
+                            "filter": "artifact",
+                            "maxCount": 1
+                        }
+                    ]
+                },
+                "effect": "ReturnSelfFromExileTransformed",
+                "timing": "SorcerySpeed",
+                "descriptionOverride": "Craft with artifact — {3}{R}{R}"
+            }
+        ],
+        "staticAbilities": [
+            {
+                "type": "ModifyStats",
+                "powerBonus": 2,
+                "toughnessBonus": 0
+            }
+        ]
+    },
+    "equipCost": "{1}",
+    "backFace": {
+        "name": "Dire Blunderbuss",
+        "manaCost": "",
+        "typeLine": "Artifact — Equipment",
+        "oracleText": "Equipped creature gets +3/+0 and has \"Whenever this creature attacks, you may sacrifice an artifact other than Dire Blunderbuss. When you do, this creature deals damage equal to its power to target creature.\"\nEquip {1}",
+        "script": {
+            "activatedAbilities": [
+                {
+                    "id": "ability_3",
+                    "cost": {
+                        "type": "CostAtomWrapper",
+                        "atom": {
+                            "type": "AtomMana",
+                            "cost": "{1}"
+                        }
+                    },
+                    "effect": {
+                        "type": "AttachEquipment",
+                        "target": {
+                            "type": "BoundVariable",
+                            "name": "creature you control"
+                        }
+                    },
+                    "targetRequirements": [
+                        {
+                            "type": "TargetObject",
+                            "filter": {
+                                "baseFilter": "creature ctrl:you"
+                            },
+                            "id": "creature you control"
+                        }
+                    ],
+                    "timing": "SorcerySpeed",
+                    "isEquipAbility": true
+                }
+            ],
+            "staticAbilities": [
+                {
+                    "type": "ModifyStats",
+                    "powerBonus": 3,
+                    "toughnessBonus": 0
+                },
+                {
+                    "type": "GrantTriggeredAbility",
+                    "ability": {
+                        "id": "ability_4",
+                        "trigger": "AttackEvent",
+                        "effect": {
+                            "type": "ReflexiveTrigger",
+                            "action": {
+                                "type": "Composite",
+                                "effects": [
+                                    {
+                                        "type": "SelectTarget",
+                                        "requirement": {
+                                            "type": "TargetObject",
+                                            "filter": {
+                                                "baseFilter": {
+                                                    "cardPredicates": [
+                                                        "IsArtifact",
+                                                        {
+                                                            "type": "Not",
+                                                            "predicate": {
+                                                                "type": "NameEquals",
+                                                                "name": "Dire Blunderbuss"
+                                                            }
+                                                        }
+                                                    ],
+                                                    "controllerPredicate": "ControlledByYou"
+                                                }
+                                            }
+                                        },
+                                        "storeAs": "toSacrifice"
+                                    },
+                                    {
+                                        "type": "SacrificeTarget",
+                                        "target": {
+                                            "type": "PipelineTarget",
+                                            "collectionName": "toSacrifice"
+                                        }
+                                    }
+                                ]
+                            },
+                            "reflexiveEffect": {
+                                "type": "DealDamage",
+                                "amount": {
+                                    "type": "EntityProperty",
+                                    "entity": "Source",
+                                    "numericProperty": "Power"
+                                },
+                                "target": {
+                                    "type": "ContextTarget",
+                                    "index": 0
+                                }
+                            },
+                            "reflexiveTargetRequirements": [
+                                {
+                                    "type": "TargetObject",
+                                    "filter": {
+                                        "baseFilter": "creature"
+                                    }
+                                }
+                            ],
+                            "descriptionOverride": "You may sacrifice an artifact other than Dire Blunderbuss. When you do, this creature deals damage equal to its power to target creature."
+                        }
+                    }
+                }
+            ]
+        },
+        "equipCost": "{1}",
+        "metadata": {
+            "collectorNumber": "145",
+            "rarity": "RARE",
+            "artist": "Anthony Devine",
+            "flavorText": "\"Thought you were out of my skull-bashin' range, didn't you?\"",
+            "imageUri": "https://cards.scryfall.io/normal/back/0/d/0d2d98ae-fe02-4a86-9e80-7b95e08de21c.jpg?1782694493"
+        },
+        "colorIdentityOverride": [
+            "RED"
+        ]
+    },
+    "metadata": {
+        "collectorNumber": "145",
+        "rarity": "RARE",
+        "artist": "Anthony Devine",
+        "imageUri": "https://cards.scryfall.io/normal/front/0/d/0d2d98ae-fe02-4a86-9e80-7b95e08de21c.jpg?1782694493"
     },
     "colorIdentityOverride": [
         "RED"
@@ -7044,6 +7417,109 @@
         "artist": "Ernanda Souza",
         "flavorText": "\"Did we follow the dinosaurs out of the caverns, or did they follow us? These glyphs could change our entire understanding of our history.\"",
         "imageUri": "https://cards.scryfall.io/normal/front/4/b/4bc94ded-458d-4458-9c0b-136d825b885d.jpg?1782694453"
+    },
+    "colorIdentityOverride": [
+        "GREEN"
+    ]
+}
+
+// Jade Seedstones
+{
+    "name": "Jade Seedstones",
+    "manaCost": "{3}{G}",
+    "typeLine": "Artifact",
+    "oracleText": "When this artifact enters, distribute three +1/+1 counters among one, two, or three target creatures you control.\nCraft with creature {5}{G}{G} ({5}{G}{G}, Exile this artifact, Exile a creature you control or a creature card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.)",
+    "keywords": [
+        "CRAFT"
+    ],
+    "script": {
+        "triggeredAbilities": [
+            {
+                "id": "ability_1",
+                "trigger": {
+                    "type": "ZoneChangeEvent",
+                    "to": "Battlefield"
+                },
+                "effect": {
+                    "type": "DistributeCountersAmongTargets",
+                    "totalCounters": 3
+                },
+                "targetRequirement": {
+                    "type": "TargetObject",
+                    "count": 3,
+                    "minCount": 1,
+                    "filter": {
+                        "baseFilter": "creature ctrl:you"
+                    }
+                }
+            }
+        ],
+        "activatedAbilities": [
+            {
+                "id": "ability_2",
+                "cost": {
+                    "type": "CostComposite",
+                    "costs": [
+                        {
+                            "type": "CostAtomWrapper",
+                            "atom": {
+                                "type": "AtomMana",
+                                "cost": "{5}{G}{G}"
+                            }
+                        },
+                        {
+                            "type": "CostCraft",
+                            "filter": "creature",
+                            "maxCount": 1
+                        }
+                    ]
+                },
+                "effect": "ReturnSelfFromExileTransformed",
+                "timing": "SorcerySpeed",
+                "descriptionOverride": "Craft with creature — {5}{G}{G}"
+            }
+        ]
+    },
+    "backFace": {
+        "name": "Jadeheart Attendant",
+        "manaCost": "",
+        "typeLine": "Artifact Creature — Golem",
+        "oracleText": "When this creature enters, you gain life equal to the mana value of the exiled card used to craft it.",
+        "creatureStats": {
+            "power": 7,
+            "toughness": 7
+        },
+        "script": {
+            "triggeredAbilities": [
+                {
+                    "id": "ability_3",
+                    "trigger": {
+                        "type": "ZoneChangeEvent",
+                        "to": "Battlefield"
+                    },
+                    "effect": {
+                        "type": "GainLife",
+                        "amount": "CraftedMaterialsTotalManaValue"
+                    }
+                }
+            ]
+        },
+        "metadata": {
+            "collectorNumber": "195",
+            "rarity": "UNCOMMON",
+            "artist": "Alexandre Honoré",
+            "flavorText": "When the merfolk fled underground, they brought the life force of the jungle with them.",
+            "imageUri": "https://cards.scryfall.io/normal/back/b/b/bb95ffc2-ef35-49bf-8211-c5354d176051.jpg?1782694452"
+        },
+        "colorIdentityOverride": [
+            "GREEN"
+        ]
+    },
+    "metadata": {
+        "collectorNumber": "195",
+        "rarity": "UNCOMMON",
+        "artist": "Alexandre Honoré",
+        "imageUri": "https://cards.scryfall.io/normal/front/b/b/bb95ffc2-ef35-49bf-8211-c5354d176051.jpg?1782694452"
     },
     "colorIdentityOverride": [
         "GREEN"
@@ -12947,6 +13423,100 @@
     ]
 }
 
+// Sunbird Standard
+{
+    "name": "Sunbird Standard",
+    "manaCost": "{3}",
+    "typeLine": "Artifact",
+    "oracleText": "{T}: Add one mana of any color.\nCraft with one or more {5} ({5}, Exile this artifact, Exile one or more other permanents you control and/or cards from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.)",
+    "keywords": [
+        "CRAFT"
+    ],
+    "script": {
+        "activatedAbilities": [
+            {
+                "id": "ability_1",
+                "cost": "CostTap",
+                "effect": "AddManaOfChoice",
+                "timing": "ManaAbility",
+                "isManaAbility": true
+            },
+            {
+                "id": "ability_2",
+                "cost": {
+                    "type": "CostComposite",
+                    "costs": [
+                        {
+                            "type": "CostAtomWrapper",
+                            "atom": {
+                                "type": "AtomMana",
+                                "cost": "{5}"
+                            }
+                        },
+                        {
+                            "type": "CostCraft",
+                            "filter": {}
+                        }
+                    ]
+                },
+                "effect": "ReturnSelfFromExileTransformed",
+                "timing": "SorcerySpeed",
+                "descriptionOverride": "Craft with one or more — {5}"
+            }
+        ]
+    },
+    "backFace": {
+        "name": "Sunbird Effigy",
+        "manaCost": "",
+        "typeLine": "Artifact Creature — Bird Construct",
+        "oracleText": "Flying, vigilance, haste\nSunbird Effigy's power and toughness are each equal to the number of colors among the exiled cards used to craft it.\n{T}: For each color among the exiled cards used to craft this creature, add one mana of that color.",
+        "creatureStats": {
+            "power": {
+                "type": "Dynamic",
+                "source": "CraftedMaterialsColorCount"
+            },
+            "toughness": {
+                "type": "Dynamic",
+                "source": "CraftedMaterialsColorCount"
+            }
+        },
+        "keywords": [
+            "FLYING",
+            "VIGILANCE",
+            "HASTE"
+        ],
+        "script": {
+            "activatedAbilities": [
+                {
+                    "id": "ability_3",
+                    "cost": "CostTap",
+                    "effect": {
+                        "type": "AddOneManaOfEachColorAmong",
+                        "filter": {},
+                        "colorSource": "CraftedMaterials"
+                    },
+                    "timing": "ManaAbility",
+                    "isManaAbility": true
+                }
+            ]
+        },
+        "metadata": {
+            "collectorNumber": "262",
+            "rarity": "UNCOMMON",
+            "artist": "Aldo Domínguez",
+            "imageUri": "https://cards.scryfall.io/normal/back/e/0/e0b6d40a-fded-4625-b03c-765c88d75766.jpg?1782694401"
+        },
+        "colorIdentityOverride": []
+    },
+    "metadata": {
+        "collectorNumber": "262",
+        "rarity": "UNCOMMON",
+        "artist": "Aldo Domínguez",
+        "imageUri": "https://cards.scryfall.io/normal/front/e/0/e0b6d40a-fded-4625-b03c-765c88d75766.jpg?1782694401"
+    },
+    "colorIdentityOverride": []
+}
+
 // Sunken Citadel
 {
     "name": "Sunken Citadel",
@@ -14473,6 +15043,214 @@
     },
     "colorIdentityOverride": [
         "WHITE"
+    ]
+}
+
+// Visage of Dread
+{
+    "name": "Visage of Dread",
+    "manaCost": "{1}{B}",
+    "typeLine": "Artifact",
+    "oracleText": "When this artifact enters, target opponent reveals their hand. You choose an artifact or creature card from it. That player discards that card.\nCraft with two creatures {5}{B} ({5}{B}, Exile this artifact, Exile the two from among creatures you control and/or creature cards in your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.)",
+    "keywords": [
+        "CRAFT"
+    ],
+    "script": {
+        "triggeredAbilities": [
+            {
+                "id": "ability_1",
+                "trigger": {
+                    "type": "ZoneChangeEvent",
+                    "to": "Battlefield"
+                },
+                "effect": {
+                    "type": "Composite",
+                    "effects": [
+                        {
+                            "type": "RevealHand",
+                            "target": {
+                                "type": "BoundVariable",
+                                "name": "opponent"
+                            }
+                        },
+                        {
+                            "type": "GatherCards",
+                            "source": {
+                                "type": "FromZone",
+                                "zone": "Hand",
+                                "player": {
+                                    "type": "ContextPlayer",
+                                    "index": 0
+                                }
+                            },
+                            "storeAs": "revealedHand"
+                        },
+                        {
+                            "type": "SelectFromCollection",
+                            "from": "revealedHand",
+                            "selection": {
+                                "type": "ChooseExactly",
+                                "count": {
+                                    "type": "Fixed",
+                                    "amount": 1
+                                }
+                            },
+                            "filter": "creature|artifact",
+                            "storeSelected": "chosenCard",
+                            "prompt": "Choose an artifact or creature card to discard"
+                        },
+                        {
+                            "type": "MoveCollection",
+                            "from": "chosenCard",
+                            "destination": {
+                                "type": "ToZone",
+                                "zone": "Graveyard",
+                                "player": {
+                                    "type": "ContextPlayer",
+                                    "index": 0
+                                }
+                            },
+                            "moveType": "Discard"
+                        }
+                    ]
+                },
+                "targetRequirement": {
+                    "type": "TargetOpponent",
+                    "id": "opponent"
+                }
+            }
+        ],
+        "activatedAbilities": [
+            {
+                "id": "ability_2",
+                "cost": {
+                    "type": "CostComposite",
+                    "costs": [
+                        {
+                            "type": "CostAtomWrapper",
+                            "atom": {
+                                "type": "AtomMana",
+                                "cost": "{5}{B}"
+                            }
+                        },
+                        {
+                            "type": "CostCraft",
+                            "filter": "creature",
+                            "minCount": 2,
+                            "maxCount": 2
+                        }
+                    ]
+                },
+                "effect": "ReturnSelfFromExileTransformed",
+                "timing": "SorcerySpeed",
+                "descriptionOverride": "Craft with two creatures — {5}{B}"
+            }
+        ]
+    },
+    "backFace": {
+        "name": "Dread Osseosaur",
+        "manaCost": "",
+        "typeLine": "Creature — Dinosaur Skeleton Horror",
+        "oracleText": "Menace\nWhenever this creature enters or attacks, you may mill two cards. (You may put the top two cards of your library into your graveyard.)",
+        "creatureStats": {
+            "power": 5,
+            "toughness": 4
+        },
+        "keywords": [
+            "MENACE"
+        ],
+        "script": {
+            "triggeredAbilities": [
+                {
+                    "id": "ability_3",
+                    "trigger": {
+                        "type": "ZoneChangeEvent",
+                        "to": "Battlefield"
+                    },
+                    "effect": {
+                        "type": "Gated",
+                        "gate": "Gate.MayDecide",
+                        "then": {
+                            "type": "Composite",
+                            "effects": [
+                                {
+                                    "type": "GatherCards",
+                                    "source": {
+                                        "type": "TopOfLibrary",
+                                        "count": {
+                                            "type": "Fixed",
+                                            "amount": 2
+                                        },
+                                        "isMill": true
+                                    },
+                                    "storeAs": "milled"
+                                },
+                                {
+                                    "type": "MoveCollection",
+                                    "from": "milled",
+                                    "destination": {
+                                        "type": "ToZone",
+                                        "zone": "Graveyard"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "id": "ability_4",
+                    "trigger": "AttackEvent",
+                    "effect": {
+                        "type": "Gated",
+                        "gate": "Gate.MayDecide",
+                        "then": {
+                            "type": "Composite",
+                            "effects": [
+                                {
+                                    "type": "GatherCards",
+                                    "source": {
+                                        "type": "TopOfLibrary",
+                                        "count": {
+                                            "type": "Fixed",
+                                            "amount": 2
+                                        },
+                                        "isMill": true
+                                    },
+                                    "storeAs": "milled"
+                                },
+                                {
+                                    "type": "MoveCollection",
+                                    "from": "milled",
+                                    "destination": {
+                                        "type": "ToZone",
+                                        "zone": "Graveyard"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        "metadata": {
+            "collectorNumber": "129",
+            "rarity": "UNCOMMON",
+            "artist": "David Auden Nash",
+            "flavorText": "\"It's not my fault! The glyphs for 'blessed' and 'cursed' look very similar!\"\n—Diego, Brazen Coalition translator",
+            "imageUri": "https://cards.scryfall.io/normal/back/3/d/3d4b61c6-3e88-49f5-9e16-aa8a59653327.jpg?1782694508"
+        },
+        "colorIdentityOverride": [
+            "BLACK"
+        ]
+    },
+    "metadata": {
+        "collectorNumber": "129",
+        "rarity": "UNCOMMON",
+        "artist": "David Auden Nash",
+        "imageUri": "https://cards.scryfall.io/normal/front/3/d/3d4b61c6-3e88-49f5-9e16-aa8a59653327.jpg?1782694508"
+    },
+    "colorIdentityOverride": [
+        "BLACK"
     ]
 }
 

@@ -432,10 +432,34 @@ data class ReplacementEffectSourceComponent(
 ) : Component
 
 /**
- * Timestamp for ordering effects (Rule 613).
+ * Timestamp for ordering continuous effects in the layer system (Rule 613.7).
+ *
+ * Currently never stamped — [com.wingedsheep.engine.mechanics.layers.StateProjector]
+ * falls back to the current [com.wingedsheep.engine.state.GameState.timestamp] when it
+ * is absent. Conceptually this is the same moment as
+ * [BattlefieldEntryTimestampComponent] (both are "when the permanent entered the
+ * battlefield"), but the two stay separate: stamping this one on every entry would
+ * change layer ordering engine-wide, while the entry stamp is a pure identity marker
+ * with no projection impact.
  */
 @Serializable
 data class TimestampComponent(
+    val timestamp: Long
+) : Component
+
+/**
+ * The value of [com.wingedsheep.engine.state.GameState.timestamp] when this permanent
+ * entered the battlefield. Identifies the battlefield *object* (CR 400.7): entity ids
+ * survive zone round-trips in this engine, so a delayed trigger that tracks a specific
+ * permanent (CR 603.7c — e.g. warp's "exile it at the beginning of the next end step")
+ * compares this stamp to detect that the entity left and returned as a new object.
+ * Stamped by [com.wingedsheep.engine.handlers.effects.PermanentEntryTracker.record] on
+ * every battlefield entry (which then ticks the global timestamp, so every entry stamp
+ * is unique); stripped on leave. Sibling of [TimestampComponent] — see its note on why
+ * the two aren't unified.
+ */
+@Serializable
+data class BattlefieldEntryTimestampComponent(
     val timestamp: Long
 ) : Component
 

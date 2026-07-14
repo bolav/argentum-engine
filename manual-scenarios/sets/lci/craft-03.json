@@ -1,0 +1,58 @@
+{
+  "player1Name": "Alice",
+  "player2Name": "Bob",
+  "player1": {
+    "lifeTotal": 20,
+    "hand": [
+      "Visage of Dread",
+      "Dire Flail",
+      "Jade Seedstones",
+      "Braided Net",
+      "Sunbird Standard"
+    ],
+    "battlefield": [
+      {"name": "Plains"},
+      {"name": "Plains"},
+      {"name": "Plains"},
+      {"name": "Plains"},
+      {"name": "Plains"},
+      {"name": "Swamp"},
+      {"name": "Swamp"},
+      {"name": "Mountain"},
+      {"name": "Mountain"},
+      {"name": "Forest"},
+      {"name": "Forest"},
+      {"name": "Island"},
+      {"name": "Island"},
+      {"name": "Grizzly Bears"},
+      {"name": "Grizzly Bears"},
+      {"name": "Grizzly Bears"},
+      {"name": "Saheeli's Lattice"},
+      {"name": "Saheeli's Lattice"}
+    ],
+    "graveyard": [
+      "Grizzly Bears",
+      "Saheeli's Lattice",
+      "Island"
+    ],
+    "library": ["Plains", "Forest", "Grizzly Bears", "Island", "Grizzly Bears", "Swamp", "Grizzly Bears"]
+  },
+  "player2": {
+    "lifeTotal": 20,
+    "hand": ["Grizzly Bears", "Saheeli's Lattice", "Island"],
+    "battlefield": [
+      {"name": "Grizzly Bears"},
+      {"name": "Grizzly Bears"}
+    ],
+    "graveyard": [],
+    "library": ["Grizzly Bears", "Island", "Grizzly Bears", "Swamp", "Grizzly Bears", "Mountain"]
+  },
+  "phase": "PRECOMBAT_MAIN",
+  "activePlayer": 1,
+  "priorityPlayer": 1,
+  "player1StopAtSteps": [],
+  "player2StopAtSteps": [],
+  "player1OpponentStopAtSteps": [],
+  "player2OpponentStopAtSteps": [],
+  "mode": "SELF"
+}

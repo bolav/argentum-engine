@@ -6,6 +6,7 @@ import com.wingedsheep.engine.handlers.DynamicAmountEvaluator
 import com.wingedsheep.engine.handlers.EffectContext
 import com.wingedsheep.engine.handlers.effects.EffectExecutor
 import com.wingedsheep.engine.state.GameState
+import com.wingedsheep.engine.state.components.battlefield.BattlefieldEntryTimestampComponent
 import com.wingedsheep.engine.state.components.identity.CardComponent
 import com.wingedsheep.sdk.scripting.effects.AddColorlessManaEffect
 import com.wingedsheep.sdk.scripting.effects.AddCountersEffect
@@ -217,7 +218,17 @@ class CreateDelayedTriggerExecutor : EffectExecutor<CreateDelayedTriggerEffect> 
             }
             is WarpExileEffect -> {
                 val resolvedId = context.resolveTarget(effect.target)
-                if (resolvedId != null) effect.copy(target = EffectTarget.SpecificEntity(resolvedId)) else effect
+                if (resolvedId != null) {
+                    // Snapshot the tracked object's entry stamp NOW (CR 603.7c), mirroring the
+                    // StackResolver warp path — a permanent that leaves and re-enters before
+                    // the trigger fires is a new object the exile must not hit.
+                    val entryTimestamp = state.getEntity(resolvedId)
+                        ?.get<BattlefieldEntryTimestampComponent>()?.timestamp
+                    effect.copy(
+                        target = EffectTarget.SpecificEntity(resolvedId),
+                        enteredBattlefieldTimestamp = entryTimestamp
+                    )
+                } else effect
             }
             is AddCountersEffect -> {
                 val resolvedId = context.resolveTarget(effect.target)

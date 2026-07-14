@@ -370,6 +370,7 @@ object ZoneMovementUtils {
             .without<SagaComponent>()
             .without<ReplacementEffectSourceComponent>()
             .without<TimestampComponent>()
+            .without<com.wingedsheep.engine.state.components.battlefield.BattlefieldEntryTimestampComponent>()
             // Rule 400.7: zone changes create a new object with no memory of prior existence.
             // Strip linked exile tracking so the new instance starts with no exiled cards.
             .without<LinkedExileComponent>()

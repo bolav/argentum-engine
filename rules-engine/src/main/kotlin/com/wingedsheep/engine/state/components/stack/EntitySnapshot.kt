@@ -5,6 +5,7 @@ import com.wingedsheep.engine.mechanics.layers.ProjectedState
 import com.wingedsheep.engine.state.GameState
 import com.wingedsheep.engine.state.components.battlefield.CountersComponent
 import com.wingedsheep.engine.state.components.battlefield.DamageSourceLki
+import com.wingedsheep.engine.state.components.identity.TokenComponent
 import com.wingedsheep.sdk.core.TypeLine
 import com.wingedsheep.sdk.model.EntityId
 import kotlinx.serialization.Serializable
@@ -157,6 +158,20 @@ fun captureEntitySnapshots(
         supertypes = projected.getSupertypes(id),
         controllerId = projected.getController(id),
     )
+}
+
+/**
+ * [captureEntitySnapshots] overload that also records each permanent's **token-ness** ([EntitySnapshot.wasToken])
+ * as last-known information — a fact only [GameState] carries (via [TokenComponent]), not [ProjectedState]. Use at
+ * a sacrifice site when a following sibling needs to know whether the sacrificed permanent was a token (Exploit's
+ * `ExploitedEvent.sacrificedWasToken`, read by Skull Skaab's "exploits a nontoken creature" clause). Caller must
+ * invoke this BEFORE the zone change so both projected values and the token component still resolve.
+ */
+fun captureEntitySnapshots(
+    ids: List<EntityId>,
+    state: GameState,
+): List<EntitySnapshot> = captureEntitySnapshots(ids, state.projectedState).map { snapshot ->
+    snapshot.copy(wasToken = state.getEntity(snapshot.entityId)?.has<TokenComponent>() ?: false)
 }
 
 fun List<EntitySnapshot>.snapshotFor(id: EntityId): EntitySnapshot? =

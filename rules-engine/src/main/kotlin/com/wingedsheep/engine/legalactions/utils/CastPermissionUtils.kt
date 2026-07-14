@@ -9,6 +9,7 @@ import com.wingedsheep.engine.state.GameState
 import com.wingedsheep.engine.state.components.battlefield.AbilityActivatedEverComponent
 import com.wingedsheep.engine.state.components.battlefield.AbilityActivatedThisTurnComponent
 import com.wingedsheep.engine.state.components.battlefield.GraveyardPlayPermissionUsedComponent
+import com.wingedsheep.engine.state.components.battlefield.TappedComponent
 import com.wingedsheep.engine.state.components.identity.CardComponent
 import com.wingedsheep.engine.state.components.identity.ControllerComponent
 import com.wingedsheep.engine.state.components.identity.FaceDownComponent
@@ -40,6 +41,7 @@ import com.wingedsheep.sdk.scripting.PlayersCantActivateAbilities
 import com.wingedsheep.sdk.scripting.PlayersCantCastSpells
 import com.wingedsheep.sdk.scripting.PreventActivatedAbilities
 import com.wingedsheep.sdk.scripting.PreventCycling
+import com.wingedsheep.sdk.scripting.Duration
 import com.wingedsheep.sdk.scripting.RestrictSpellsCastPerTurn
 import com.wingedsheep.sdk.scripting.references.Player
 
@@ -782,8 +784,19 @@ class CastPermissionUtils(
     }
 
     /**
-     * True when any [PreventActivatedAbilities] static ability on the battlefield matches
-     * [sourceId] under projected state (Cursed Totem, Damping Matrix, ...).
+     * True when any [PreventActivatedAbilities] static ability — printed on a battlefield
+     * permanent (Cursed Totem, Damping Matrix, ...) or granted via
+     * [com.wingedsheep.engine.event.GrantedStaticAbility] (Braided Net's durational
+     * "its activated abilities can't be activated") — matches [sourceId] under projected state.
+     *
+     * Granted instances behave exactly like printed ones, anchored to the entity they are
+     * granted to: the filter is evaluated with the grant's holder as the source and its
+     * controller as the perspective. A self-scoped grant
+     * (`PreventActivatedAbilities(GameObjectFilter.Permanent.sourceItself())`) therefore locks
+     * the holder's own abilities. Grants with a conditional "for as long as …" duration
+     * ([Duration.WhileAffectedTapped]) are gated here per-frame; the one-way latch (CR 611.2b)
+     * is enforced by `EndedDurationExpiryCheck`, which physically removes the grant the moment
+     * its condition fails.
      *
      * Callers should skip both mana and non-mana activated abilities of [sourceId] when this
      * returns true. Loyalty abilities of planeswalkers are not blocked (Cursed Totem's filter
@@ -814,6 +827,27 @@ class CastPermissionUtils(
                 if (predicateEvaluator.matches(state, projected, sourceId, prevent.filter, context)) {
                     return true
                 }
+            }
+        }
+        // Granted statics (GameState.grantedStaticAbilities) — same semantics as printed,
+        // anchored to the holder entity instead of a card definition.
+        for (grant in state.grantedStaticAbilities) {
+            val prevent = grant.ability as? PreventActivatedAbilities ?: continue
+            if (prevent.nonManaAbilitiesOnly && abilityIsManaAbility) continue
+            if (!state.getBattlefield().contains(grant.entityId)) continue
+            // Per-frame gate for conditional durations — the mirror of StateProjector's gate
+            // for floating effects. EndedDurationExpiryCheck supplies the one-way latch.
+            if (grant.duration is Duration.WhileAffectedTapped &&
+                state.getEntity(grant.entityId)?.has<TappedComponent>() != true
+            ) {
+                continue
+            }
+            val holderController = projected.getController(grant.entityId)
+                ?: state.getEntity(grant.entityId)?.get<ControllerComponent>()?.playerId
+                ?: continue
+            val context = PredicateContext(controllerId = holderController, sourceId = grant.entityId)
+            if (predicateEvaluator.matches(state, projected, sourceId, prevent.filter, context)) {
+                return true
             }
         }
         return false

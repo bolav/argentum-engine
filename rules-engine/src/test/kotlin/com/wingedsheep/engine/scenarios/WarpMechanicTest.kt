@@ -9,6 +9,7 @@ import com.wingedsheep.engine.state.components.identity.WarpExiledComponent
 import com.wingedsheep.engine.handlers.effects.ZoneTransitionService
 import com.wingedsheep.engine.legalactions.LegalActionEnumerator
 import com.wingedsheep.engine.state.components.battlefield.CountersComponent
+import com.wingedsheep.engine.state.components.stack.ChosenTarget
 import com.wingedsheep.engine.support.GameTestDriver
 import com.wingedsheep.engine.support.TestCards
 import com.wingedsheep.sdk.core.Color
@@ -16,6 +17,8 @@ import com.wingedsheep.sdk.core.CounterType
 import com.wingedsheep.sdk.core.Keyword
 import com.wingedsheep.sdk.core.Step
 import com.wingedsheep.sdk.core.Zone
+import com.wingedsheep.sdk.dsl.Effects
+import com.wingedsheep.sdk.dsl.Targets
 import com.wingedsheep.sdk.dsl.card
 import com.wingedsheep.sdk.model.Deck
 import com.wingedsheep.sdk.model.EntityId
@@ -47,9 +50,21 @@ class WarpMechanicTest : FunSpec({
         replacementEffect(EntersWithDynamicCounters(count = DynamicAmount.XValue))
     }
 
+    // Minimal blink (cf. Daydream): exile the targeted creature, then return it to the
+    // battlefield — making it a new object (CR 400.7).
+    val blinkSorcery = card("Blink Test Sorcery") {
+        manaCost = "{R}"
+        typeLine = "Sorcery"
+        spell {
+            val creature = target("creature you control", Targets.CreatureYouControl)
+            effect = Effects.Move(creature, Zone.EXILE)
+                .then(Effects.Move(creature, Zone.BATTLEFIELD))
+        }
+    }
+
     fun createDriver(): GameTestDriver {
         val driver = GameTestDriver()
-        driver.registerCards(TestCards.all + listOf(warpCreature, warpXCreature))
+        driver.registerCards(TestCards.all + listOf(warpCreature, warpXCreature, blinkSorcery))
         return driver
     }
 
@@ -135,6 +150,55 @@ class WarpMechanicTest : FunSpec({
         driver.getExileCardNames(player) shouldBe listOf("Warp Test Creature")
         val exiledCardId = driver.getExile(player).first()
         driver.state.getEntity(exiledCardId)?.has<WarpExiledComponent>() shouldBe true
+    }
+
+    test("warped creature blinked before the end step is not exiled — new object, CR 603.7c") {
+        val driver = createDriver()
+        driver.initMirrorMatch(deck = Deck.of("Mountain" to 40))
+        driver.gotoMainPhase()
+
+        val player = driver.activePlayer!!
+        val cardId = driver.putCardInHand(player, "Warp Test Creature")
+        driver.giveMana(player, Color.RED, 2)
+
+        driver.submit(
+            CastSpell(
+                playerId = player,
+                cardId = cardId,
+                useAlternativeCost = true,
+                paymentStrategy = PaymentStrategy.FromPool
+            )
+        )
+        driver.bothPass()
+
+        val warped = driver.findPermanent(player, "Warp Test Creature")
+        warped shouldNotBe null
+        driver.state.getEntity(warped!!)?.has<WarpedComponent>() shouldBe true
+
+        // Blink it — exile and return. The returned permanent is a new object (CR 400.7)
+        // that warp's delayed exile trigger no longer tracks.
+        val blinkId = driver.putCardInHand(player, "Blink Test Sorcery")
+        driver.giveMana(player, Color.RED, 1)
+        driver.submit(
+            CastSpell(
+                playerId = player,
+                cardId = blinkId,
+                targets = listOf(ChosenTarget.Permanent(warped)),
+                paymentStrategy = PaymentStrategy.FromPool
+            )
+        ).isSuccess shouldBe true
+        driver.bothPass()
+
+        val returned = driver.findPermanent(player, "Warp Test Creature")
+        returned shouldNotBe null
+        driver.state.getEntity(returned!!)?.has<WarpedComponent>() shouldBe false
+
+        // The delayed trigger still fires at the end step but must not exile the new object.
+        driver.passPriorityUntil(Step.END)
+        driver.bothPass()
+
+        driver.findPermanent(player, "Warp Test Creature") shouldNotBe null
+        driver.getExile(player) shouldBe emptyList()
     }
 
     test("warped creature can be re-cast from exile at its regular mana cost on a later turn") {

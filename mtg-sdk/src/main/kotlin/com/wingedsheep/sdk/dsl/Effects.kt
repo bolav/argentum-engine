@@ -17,6 +17,7 @@ import com.wingedsheep.sdk.scripting.values.EntityReference
 import com.wingedsheep.sdk.scripting.values.LandControllerScope
 import com.wingedsheep.sdk.scripting.values.ManaColorSet
 import com.wingedsheep.sdk.scripting.effects.AddOneManaOfEachColorAmongEffect
+import com.wingedsheep.sdk.scripting.effects.ManaColorSource
 import com.wingedsheep.sdk.scripting.effects.ManaRestriction
 import com.wingedsheep.sdk.scripting.effects.ManaSpellRider
 import com.wingedsheep.sdk.scripting.effects.AddCardTypeEffect
@@ -1953,6 +1954,18 @@ object Effects {
      */
     fun AddOneManaOfEachColorAmong(filter: GameObjectFilter, restriction: ManaRestriction? = null): Effect =
         AddOneManaOfEachColorAmongEffect(filter, restriction)
+
+    /**
+     * For each color among the exiled cards used to craft the source (its
+     * `CraftedFromExiledComponent`), add one mana of that color — Sunbird Effigy's mana
+     * ability. Printed colors of the exile-zone materials; 0–5 mana total, no choice.
+     */
+    fun AddOneManaOfEachCraftedMaterialColor(restriction: ManaRestriction? = null): Effect =
+        AddOneManaOfEachColorAmongEffect(
+            filter = GameObjectFilter.Any,
+            restriction = restriction,
+            colorSource = ManaColorSource.CraftedMaterials
+        )
 
     /**
      * Add one mana of any color that a land in the given scope could produce.

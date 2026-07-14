@@ -62,7 +62,8 @@ enum class CounterType {
     DOOM,
     POSSESSION,
     FIRE,
-    CONQUEROR;
+    CONQUEROR,
+    NET;
 
     companion object {
         /**
@@ -232,6 +233,15 @@ object Counters {
      * NOT a keyword counter, so it is intentionally absent from `StateProjector.KEYWORD_COUNTER_MAP`.
      */
     const val CONQUEROR = "conqueror"
+
+    /**
+     * Net counter (LCI — Braided Net). Passive named counter with no inherent rule of its
+     * own — the card enters with three (an `EntersWithCounters` replacement with
+     * `CounterTypeFilter.Named(Counters.NET)`) and removes one as an activation cost
+     * (`Costs.RemoveCounterFromSelf(Counters.NET, 1)`).
+     * NOT a keyword counter, so it is intentionally absent from `StateProjector.KEYWORD_COUNTER_MAP`.
+     */
+    const val NET = "net"
 
     /**
      * Wildcard sentinel for triggers/events that fire on counters of *any* type, e.g.

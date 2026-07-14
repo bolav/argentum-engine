@@ -119,6 +119,7 @@ class StackResolver(
         wasWarped: Boolean = false,
         wasEvoked: Boolean = false,
         wasImpending: Boolean = false,
+        wasCleaved: Boolean = false,
         wasSneaked: Boolean = false,
         sneakAttackDefenderId: EntityId? = null,
         chosenModes: List<Int> = emptyList(),
@@ -192,6 +193,7 @@ class StackResolver(
                 wasWarped = wasWarped,
                 wasEvoked = wasEvoked,
                 wasImpending = wasImpending,
+                wasCleaved = wasCleaved,
                 wasSneaked = wasSneaked,
                 sneakAttackDefenderId = sneakAttackDefenderId,
                 beheldCards = beheldCards,
@@ -1506,11 +1508,20 @@ class StackResolver(
             }
         }
 
-        // Warp: create delayed trigger to exile at beginning of next end step
+        // Warp: create delayed trigger to exile at beginning of next end step. Snapshot the
+        // permanent's battlefield-entry timestamp so the exile only affects this battlefield
+        // object — if the permanent leaves and re-enters before the trigger resolves (blink),
+        // it's a new object the delayed trigger no longer tracks (CR 603.7c / 400.7).
         if (spellComponent.wasWarped) {
+            val entryTimestamp = newState.getEntity(spellId)
+                ?.get<com.wingedsheep.engine.state.components.battlefield.BattlefieldEntryTimestampComponent>()
+                ?.timestamp
             val delayedTrigger = DelayedTriggeredAbility(
                 id = java.util.UUID.randomUUID().toString(),
-                effect = WarpExileEffect(EffectTarget.SpecificEntity(spellId)),
+                effect = WarpExileEffect(
+                    target = EffectTarget.SpecificEntity(spellId),
+                    enteredBattlefieldTimestamp = entryTimestamp
+                ),
                 fireAtStep = Step.END,
                 sourceId = spellId,
                 sourceName = cardComponent?.name ?: "Unknown",
@@ -1567,6 +1578,11 @@ class StackResolver(
             faceSpellEffect != null -> faceSpellEffect
             spellComponent.wasKicked && cardComponent != null ->
                 resolvedCardDef?.script?.kickerSpellEffect ?: cardComponent.spellEffect
+            // Cleave (CR 702.148): a spell cast for its cleave cost resolves with its
+            // brackets-removed effect variant, applied structurally at cast time rather than by
+            // editing text — so e.g. a bracketed delayed-trigger clause is never created.
+            spellComponent.wasCleaved && cardComponent != null ->
+                resolvedCardDef?.script?.cleaveSpellEffect ?: cardComponent.spellEffect
             else -> cardComponent?.spellEffect
         }
         val rawSpellEffect = baseSpellEffect

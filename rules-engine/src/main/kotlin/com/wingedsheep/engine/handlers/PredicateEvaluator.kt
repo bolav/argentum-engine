@@ -1112,6 +1112,12 @@ class PredicateEvaluator {
                 matches(state, state.projectedState, attached.targetId, predicate.filter, ctx)
             }
 
+            // Source-relative — the candidate IS the effect's source permanent itself
+            // (GameObjectFilter counterpart of GroupFilter's Scope.Self). Backs the granted
+            // PreventActivatedAbilities form (Braided Net), where the activation-legality
+            // check supplies the grant's holder as the source. False with no source context.
+            StatePredicate.IsSource -> context?.sourceId == entityId
+
             // Source-relative — the candidate is the permanent the effect's source is attached
             // to (its enchanted/equipped creature). Read the source's AttachedToComponent and
             // compare its targetId to the candidate. False with no source or an unattached source.
@@ -1153,6 +1159,11 @@ class PredicateEvaluator {
             // Battlefield marker — set when a warped spell resolves (CR 702.185).
             StatePredicate.WasCastForWarp ->
                 container.has<com.wingedsheep.engine.state.components.battlefield.WarpedComponent>()
+
+            // Cast-origin zone of a spell on the stack — reads the engine-stamped
+            // SpellOnStackComponent.castFromZone (Wash Away's "wasn't cast from its owner's hand").
+            is StatePredicate.WasCastFromZone ->
+                container.get<SpellOnStackComponent>()?.castFromZone == predicate.zone
 
             // Relative power
             StatePredicate.HasGreatestPower -> {

@@ -1024,6 +1024,32 @@ data class PermanentsSacrificedEvent(
     val permanentNames: List<String> = emptyList()
 ) : GameEvent
 
+/**
+ * A creature exploited a creature (CR 702.110b): the controller of an exploit ability sacrificed a
+ * creature as that ability resolved. Emitted once per sacrificed creature by `EmitExploitedEventExecutor`
+ * (wired into the `exploit()` reflexive action right after the sacrifice), so external watchers —
+ * [com.wingedsheep.sdk.scripting.EventPattern.ExploitedEvent], e.g. Skull Skaab — can react. Declining the
+ * optional sacrifice sacrifices nothing, so no event is emitted.
+ *
+ * @property exploiterId The creature with exploit that did the sacrificing (the "exploiter").
+ * @property exploiterControllerId Controller of the exploit ability (scopes "a creature *you* control exploits").
+ * @property sacrificedId The creature that was sacrificed.
+ * @property sacrificedWasToken Last-known token-ness of the sacrificed creature, snapshotted **before** the
+ *   zone change — the creature is gone by the time watchers resolve. Drives Skull Skaab's "nontoken" clause.
+ * @property sacrificedName The sacrificed creature's name (for display).
+ * @property sourceName The exploiter's name (for display).
+ */
+@Serializable
+@SerialName("ExploitedEvent")
+data class ExploitedEvent(
+    val exploiterId: EntityId,
+    val exploiterControllerId: EntityId,
+    val sacrificedId: EntityId,
+    val sacrificedWasToken: Boolean,
+    val sacrificedName: String,
+    val sourceName: String
+) : GameEvent
+
 // =============================================================================
 // Class Level Events
 // =============================================================================

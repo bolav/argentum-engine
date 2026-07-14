@@ -200,6 +200,31 @@ sealed interface Duration {
     }
 
     /**
+     * Effect lasts for as long as each *affected* permanent remains tapped (CR 611.2b
+     * "for as long as it remains tapped") — the affected-object mirror of
+     * [WhileSourceTapped]: the gate watches the permanent the effect is modifying, not the
+     * effect's source, so the effect persists independently of the source and ends the
+     * instant that permanent becomes untapped (or leaves the battlefield — a returning
+     * permanent is a new object).
+     *
+     * Per-affected and one-way (CR 611.2b): once an affected permanent untaps, the effect
+     * ends for that permanent for good — `EndedDurationExpiryCheck` physically removes it
+     * (from floating effects and from duration-keyed grants alike), so tapping it again
+     * later does NOT restart the effect. `StateProjector` (floating effects) and the
+     * granted-ability read sites supply the instantaneous per-frame gate.
+     *
+     * Used by Braided Net — "Tap another target nonland permanent. Its activated abilities
+     * can't be activated for as long as it remains tapped." — as the duration of a
+     * [com.wingedsheep.sdk.scripting.effects.GrantStaticAbilityEffect] carrying
+     * [com.wingedsheep.sdk.scripting.PreventActivatedAbilities].
+     */
+    @SerialName("WhileAffectedTapped")
+    @Serializable
+    data object WhileAffectedTapped : Duration {
+        override val description = "for as long as it remains tapped"
+    }
+
+    /**
      * Effect lasts while the source permanent remains tapped AND each affected entity's
      * projected power stays less than or equal to the source's projected power. Gated
      * per-frame by `StateProjector`: the source-tapped half is enforced when the floating
@@ -292,6 +317,8 @@ object Durations {
 
     fun whileSourceTapped(source: String = "this creature") =
         Duration.WhileSourceTapped(source)
+
+    val WhileAffectedTapped = Duration.WhileAffectedTapped
 
     fun whileYouControlSource(source: String = "this permanent") =
         Duration.WhileYouControlSource(source)

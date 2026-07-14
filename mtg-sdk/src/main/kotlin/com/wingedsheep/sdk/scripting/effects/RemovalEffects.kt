@@ -175,6 +175,28 @@ data class SacrificeTargetEffect(
 }
 
 /**
+ * Emit an `ExploitedEvent` (CR 702.110b) for each creature the source just sacrificed as its exploit
+ * ability resolved. Appended internally by [com.wingedsheep.sdk.dsl.exploit] immediately after the
+ * exploit [SacrificeEffect] inside the reflexive's action, so `ExploitedEvent` triggers
+ * ([com.wingedsheep.sdk.scripting.EventPattern.ExploitedEvent], e.g. Skull Skaab) fire once per
+ * exploited creature.
+ *
+ * There is no explicit input field: the executor reads the sacrificed creatures' last-known info
+ * (id, name, token-ness) from `EffectContext.sacrificedPermanents`, which the composite executor
+ * threads in from the preceding [SacrificeEffect]. When the optional sacrifice is *declined*, no
+ * creature was sacrificed, so `sacrificedPermanents` is empty and no event is emitted (satisfying
+ * CR 702.110a's "may"). The exploiter is always the ability's source.
+ *
+ * Card authors should not use this directly; it is wired into the `exploit()` helper.
+ */
+@SerialName("EmitExploitedEvent")
+@Serializable
+data object EmitExploitedEventEffect : Effect {
+    // Intentionally blank: this is an internal reflexive-action tail with no player-facing text.
+    override val description: String = ""
+}
+
+/**
  * Force sacrifice effect: Target player sacrifices permanents matching a filter.
  * "Target player sacrifices a creature" (Edict effects)
  */
@@ -545,11 +567,18 @@ data class PutOnLibraryPositionOfChoiceEffect(
  * from exile for its warp cost on a later turn.
  *
  * @property target The permanent to exile (resolved to SpecificEntity by delayed trigger creation)
+ * @property enteredBattlefieldTimestamp The tracked permanent's battlefield-entry timestamp,
+ *   snapshotted when the delayed trigger is created. At resolution the executor exiles the
+ *   permanent only if its current entry timestamp still matches — if it left the battlefield
+ *   and returned in between (blink), it's a new object the delayed trigger no longer tracks
+ *   (CR 603.7c / 400.7) and the exile does nothing. Null skips the check (pre-existing
+ *   serialized states, or callers that resolve the target at fire time).
  */
 @SerialName("WarpExile")
 @Serializable
 data class WarpExileEffect(
-    val target: EffectTarget
+    val target: EffectTarget,
+    val enteredBattlefieldTimestamp: Long? = null
 ) : Effect {
     override val description: String = "Exile ${target.description} (warp)"
 }
